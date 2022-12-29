@@ -19,8 +19,7 @@ pub struct Config {
 impl Config {
     pub fn init(account_name: &str) -> Result<Config, Error> {
         let base_path = Config::default_base_path()?;
-        let account_json_path = &base_path.join(ACCOUNT_CONFIG_NAME);
-        let account = Account::init(account_json_path, account_name)?;
+        let account = Account::new(account_name);
 
         let config = Config { base_path, account };
         config.create_account_dir()?;
@@ -28,12 +27,15 @@ impl Config {
         Ok(config)
     }
 
-    pub fn load_default_account() -> Result<Config, Error> {
-        let base_path = Config::default_base_path()?;
-        let account_json_path = &base_path.join(ACCOUNT_CONFIG_NAME);
-        let account = Account::read_from_path(&account_json_path)?;
+    pub fn save_secret(&self, secret: &Secret) -> Result<(), Error> {
+        let content = serde_json::to_string_pretty(&secret).map_err(Error::SerializeSecret)?;
+        fs::write(&self.secret_path(), content).map_err(Error::WriteSecret)?;
+        Ok(())
+    }
 
-        Ok(Config { base_path, account })
+    pub fn load_secret(&self) -> Result<Secret, Error> {
+        let content = fs::read_to_string(&self.secret_path()).map_err(Error::ReadSecret)?;
+        serde_json::from_str(&content).map_err(Error::DeserializeSecret)
     }
 
     pub fn account_base_path(&self) -> PathBuf {
@@ -68,26 +70,10 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn init(path: &PathBuf, name: &str) -> Result<Account, Error> {
-        let account = Account {
-            name: name.to_string(),
-        };
-
-        let content =
-            serde_json::to_string_pretty(&account).map_err(Error::SerializeAccountConfig)?;
-        fs::write(path, content).map_err(Error::WriteAccountConfig)?;
-        Ok(account)
-    }
-
     pub fn new(name: &str) -> Account {
         Account {
             name: name.to_string(),
         }
-    }
-
-    pub fn read_from_path(path: &PathBuf) -> Result<Account, Error> {
-        let content = fs::read_to_string(path).map_err(Error::ReadAccountConfig)?;
-        serde_json::from_str(&content).map_err(Error::ParseAccountConfig)
     }
 }
 
@@ -105,4 +91,8 @@ pub enum Error {
     ParseAccountConfig(serde_json::Error),
     SerializeAccountConfig(serde_json::Error),
     WriteAccountConfig(io::Error),
+    SerializeSecret(serde_json::Error),
+    WriteSecret(io::Error),
+    ReadSecret(io::Error),
+    DeserializeSecret(serde_json::Error),
 }
