@@ -65,13 +65,29 @@ async fn login() -> Result<(), Error> {
         .await
         .map_err(Error::Auth)?;
 
-    let res = auth
-        .token(&[
-            "https://www.googleapis.com/auth/drive",
-            "https://www.googleapis.com/auth/drive.metadata.readonly",
-        ])
-        .await;
-    println!("About: {:?}", res);
+    auth.token(&[
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+    ])
+    .await
+    .map_err(Error::AccessToken)?;
+
+    let hub = hub::Hub::new(auth).await;
+    let (_, about) = hub
+        .about()
+        .get()
+        .param("fields", "user")
+        .doit()
+        .await
+        .map_err(Error::About)?;
+
+    let email = about
+        .user
+        .and_then(|u| u.email_address)
+        .unwrap_or_else(|| String::from("unknown"));
+
+    println!("Logged in as {}", email);
+
     Ok(())
 }
 
@@ -128,4 +144,6 @@ enum Error {
     Config(config::Error),
     Auth(io::Error),
     ReadStdin(io::Error),
+    AccessToken(google_drive3::oauth2::Error),
+    About(google_drive3::Error),
 }
