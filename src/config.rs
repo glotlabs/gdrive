@@ -73,7 +73,6 @@ impl Config {
             current: self.account.name.clone(),
         };
 
-        let base_path = Config::default_base_path()?;
         let content =
             serde_json::to_string_pretty(&account_config).map_err(Error::SerializeAccountConfig)?;
         fs::write(self.account_config_path(), content).map_err(Error::WriteAccountConfig)?;
