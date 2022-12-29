@@ -54,7 +54,7 @@ impl Deref for Auth {
 }
 
 impl Auth {
-    pub async fn new(config: config::Secret, tokens_path: &PathBuf) -> Result<Auth, io::Error> {
+    pub async fn new(config: &config::Secret, tokens_path: &PathBuf) -> Result<Auth, io::Error> {
         let secret = oauth2_secret(config);
         let delegate = Box::new(AuthDelegate);
 
@@ -71,16 +71,18 @@ impl Auth {
     }
 }
 
-fn oauth2_secret(config: config::Secret) -> oauth2::ApplicationSecret {
+fn oauth2_secret(config: &config::Secret) -> oauth2::ApplicationSecret {
     oauth2::ApplicationSecret {
-        client_id: config.client_id,
-        client_secret: config.client_secret,
-        token_uri: "https://oauth2.googleapis.com/token".to_string(),
-        auth_uri: "https://accounts.google.com/o/oauth2/auth".to_string(),
-        redirect_uris: vec!["urn:ietf:wg:oauth:2.0:oob".to_string()],
+        client_id: config.client_id.clone(),
+        client_secret: config.client_secret.clone(),
+        token_uri: String::from("https://oauth2.googleapis.com/token"),
+        auth_uri: String::from("https://accounts.google.com/o/oauth2/auth"),
+        redirect_uris: vec![String::from("urn:ietf:wg:oauth:2.0:oob")],
         project_id: None,
         client_email: None,
-        auth_provider_x509_cert_url: Some("https://www.googleapis.com/oauth2/v1/certs".to_string()),
+        auth_provider_x509_cert_url: Some(String::from(
+            "https://www.googleapis.com/oauth2/v1/certs",
+        )),
         client_x509_cert_url: None,
     }
 }

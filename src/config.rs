@@ -16,8 +16,31 @@ pub struct Config {
     pub account: Account,
 }
 
+pub fn add_account(
+    account_name: &str,
+    secret: &Secret,
+    tokens_path: &PathBuf,
+) -> Result<Config, Error> {
+    let config = Config::init_account(account_name)?;
+    config.save_secret(secret)?;
+    fs::copy(tokens_path, config.tokens_path()).map_err(Error::CopyTokens)?;
+    Ok(config)
+}
+
+pub fn switch_account(config: &Config) -> Result<(), Error> {
+    config.save_account_config()
+}
+
 impl Config {
-    pub fn init(account_name: &str) -> Result<Config, Error> {
+    pub fn load_current_account() -> Result<Config, Error> {
+        let base_path = Config::default_base_path()?;
+        let account_config = Config::load_account_config()?;
+        let account = Account::new(&account_config.current);
+        let config = Config { base_path, account };
+        Ok(config)
+    }
+
+    pub fn init_account(account_name: &str) -> Result<Config, Error> {
         let base_path = Config::default_base_path()?;
         let account = Account::new(account_name);
 
@@ -36,6 +59,29 @@ impl Config {
     pub fn load_secret(&self) -> Result<Secret, Error> {
         let content = fs::read_to_string(&self.secret_path()).map_err(Error::ReadSecret)?;
         serde_json::from_str(&content).map_err(Error::DeserializeSecret)
+    }
+
+    pub fn load_account_config() -> Result<AccountConfig, Error> {
+        let base_path = Config::default_base_path()?;
+        let content = fs::read_to_string(base_path.join(ACCOUNT_CONFIG_NAME))
+            .map_err(Error::ReadAccountConfig)?;
+        serde_json::from_str(&content).map_err(Error::DeserializeAccountConfig)
+    }
+
+    pub fn save_account_config(&self) -> Result<(), Error> {
+        let account_config = AccountConfig {
+            current: self.account.name.clone(),
+        };
+
+        let base_path = Config::default_base_path()?;
+        let content =
+            serde_json::to_string_pretty(&account_config).map_err(Error::SerializeAccountConfig)?;
+        fs::write(self.account_config_path(), content).map_err(Error::WriteAccountConfig)?;
+        Ok(())
+    }
+
+    pub fn account_config_path(&self) -> PathBuf {
+        self.base_path.join(ACCOUNT_CONFIG_NAME)
     }
 
     pub fn account_base_path(&self) -> PathBuf {
@@ -62,6 +108,11 @@ impl Config {
         fs::create_dir_all(&self.account_base_path()).map_err(Error::CreateConfigDir)?;
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AccountConfig {
+    pub current: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -95,4 +146,6 @@ pub enum Error {
     WriteSecret(io::Error),
     ReadSecret(io::Error),
     DeserializeSecret(serde_json::Error),
+    DeserializeAccountConfig(serde_json::Error),
+    CopyTokens(io::Error),
 }

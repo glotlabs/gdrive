@@ -15,10 +15,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// auth commands
-    Auth {
+    /// account commands
+    Account {
         #[command(subcommand)]
-        command: AuthCommand,
+        command: AccountCommand,
     },
 
     /// list commands
@@ -26,21 +26,21 @@ enum Command {
 }
 
 #[derive(Subcommand)]
-enum AuthCommand {
-    /// login
-    Login,
+enum AccountCommand {
+    /// add
+    Add,
 }
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::Auth { command } => {
+        Command::Account { command } => {
             // fmt
             match command {
-                AuthCommand::Login => {
+                AccountCommand::Add => {
                     // fmt
-                    if let Err(err) = login().await {
+                    if let Err(err) = add_account().await {
                         eprintln!("Error: {:?}", err);
                     }
                 }
@@ -58,13 +58,17 @@ async fn main() {
     ()
 }
 
-async fn login() -> Result<(), Error> {
-    let config = Config::init("1").map_err(Error::Config)?;
-    let secret = get_secret(&config)?;
-    let auth = hub::Auth::new(secret, &config.tokens_path())
+async fn add_account() -> Result<(), Error> {
+    let secret = secret_prompt()?;
+
+    let tmp_dir = tempfile::tempdir().map_err(Error::Tempdir)?;
+    let tokens_path = tmp_dir.path().join("tokens.json");
+
+    let auth = hub::Auth::new(&secret, &tokens_path)
         .await
         .map_err(Error::Auth)?;
 
+    // Get access tokens
     auth.token(&[
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/drive.metadata.readonly",
@@ -86,15 +90,18 @@ async fn login() -> Result<(), Error> {
         .and_then(|u| u.email_address)
         .unwrap_or_else(|| String::from("unknown"));
 
-    println!("Logged in as {}", email);
+    let config = config::add_account(&email, &secret, &tokens_path).map_err(Error::Config)?;
+    config::switch_account(&config).map_err(Error::Config)?;
+
+    println!("Logged in as {}", config.account.name);
 
     Ok(())
 }
 
 async fn list() -> Result<(), Error> {
-    let config = Config::init("1").map_err(Error::Config)?;
-    let secret = get_secret(&config)?;
-    let auth = hub::Auth::new(secret, &config.tokens_path())
+    let config = Config::load_current_account().map_err(Error::Config)?;
+    let secret = config.load_secret().map_err(Error::Config)?;
+    let auth = hub::Auth::new(&secret, &config.tokens_path())
         .await
         .map_err(Error::Auth)?;
 
@@ -102,16 +109,6 @@ async fn list() -> Result<(), Error> {
     let res = hub.files().list().doit().await;
     println!("{:?}", res);
     Ok(())
-}
-
-fn get_secret(config: &Config) -> Result<config::Secret, Error> {
-    if let Ok(secret) = config.load_secret() {
-        Ok(secret)
-    } else {
-        let secret = secret_prompt()?;
-        let _ = config.save_secret(&secret);
-        Ok(secret)
-    }
 }
 
 fn secret_prompt() -> Result<config::Secret, Error> {
@@ -142,6 +139,7 @@ fn prompt_input(msg: &str) -> Result<String, Error> {
 #[derive(Debug)]
 enum Error {
     Config(config::Error),
+    Tempdir(io::Error),
     Auth(io::Error),
     ReadStdin(io::Error),
     AccessToken(google_drive3::oauth2::Error),
