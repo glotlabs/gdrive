@@ -32,6 +32,15 @@ pub fn switch_account(config: &Config) -> Result<(), Error> {
 }
 
 impl Config {
+    pub fn has_current_account() -> bool {
+        if let Ok(base_path) = Config::default_base_path() {
+            let account_config_path = base_path.join(ACCOUNT_CONFIG_NAME);
+            account_config_path.exists()
+        } else {
+            false
+        }
+    }
+
     pub fn load_current_account() -> Result<Config, Error> {
         let base_path = Config::default_base_path()?;
         let account_config = Config::load_account_config()?;
