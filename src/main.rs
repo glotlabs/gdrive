@@ -34,6 +34,12 @@ enum AccountCommand {
 
     /// current
     Current,
+
+    /// current
+    Switch {
+        /// account name
+        account_name: String,
+    },
 }
 
 #[tokio::main]
@@ -60,6 +66,13 @@ async fn main() {
                 AccountCommand::Current => {
                     // fmt
                     if let Err(err) = account::current() {
+                        eprintln!("Error: {:?}", err);
+                    }
+                }
+
+                AccountCommand::Switch { account_name } => {
+                    // fmt
+                    if let Err(err) = account::switch(&account_name) {
                         eprintln!("Error: {:?}", err);
                     }
                 }
