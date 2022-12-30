@@ -35,8 +35,14 @@ enum AccountCommand {
     /// current
     Current,
 
-    /// current
+    /// switch
     Switch {
+        /// account name
+        account_name: String,
+    },
+
+    /// remove
+    Remove {
         /// account name
         account_name: String,
     },
@@ -73,6 +79,13 @@ async fn main() {
                 AccountCommand::Switch { account_name } => {
                     // fmt
                     if let Err(err) = account::switch(&account_name) {
+                        eprintln!("Error: {:?}", err);
+                    }
+                }
+
+                AccountCommand::Remove { account_name } => {
+                    // fmt
+                    if let Err(err) = account::remove(&account_name) {
                         eprintln!("Error: {:?}", err);
                     }
                 }

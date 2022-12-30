@@ -50,6 +50,18 @@ impl Config {
         Ok(config)
     }
 
+    pub fn remove_account(&self) -> Result<(), Error> {
+        let path = self.account_base_path();
+        fs::remove_dir_all(&path).map_err(Error::RemoveAccountDir)?;
+
+        let account_config = Config::load_account_config()?;
+        if self.account.name == account_config.current {
+            fs::remove_file(self.account_config_path()).map_err(Error::RemoveAccountConfig)?;
+        }
+
+        Ok(())
+    }
+
     pub fn list_accounts() -> Result<Vec<String>, Error> {
         let base_path = Config::default_base_path()?;
         let entries = fs::read_dir(base_path).map_err(Error::ListFiles)?;
@@ -164,4 +176,6 @@ pub enum Error {
     DeserializeAccountConfig(serde_json::Error),
     CopyTokens(io::Error),
     ListFiles(io::Error),
+    RemoveAccountDir(io::Error),
+    RemoveAccountConfig(io::Error),
 }
