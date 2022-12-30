@@ -1,5 +1,8 @@
 use crate::config;
 use crate::hub;
+use std::error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::io;
 use std::io::Write;
 
@@ -47,10 +50,25 @@ pub async fn add() -> Result<(), Error> {
 pub enum Error {
     Prompt(io::Error),
     Tempdir(io::Error),
-    Config(config::Error),
     Auth(io::Error),
+    Config(config::Error),
     AccessToken(google_drive3::oauth2::Error),
     About(google_drive3::Error),
+}
+
+impl error::Error for Error {}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Prompt(e) => write!(f, "Failed to get input from user: {}", e),
+            Error::Tempdir(e) => write!(f, "Failed to create temporary directory: {}", e),
+            Error::Auth(e) => write!(f, "Failed to authenticate: {}", e),
+            Error::Config(e) => write!(f, "{}", e),
+            Error::AccessToken(e) => write!(f, "Failed to get access token: {}", e),
+            Error::About(e) => write!(f, "Failed to get user info: {}", e),
+        }
+    }
 }
 
 fn secret_prompt() -> Result<config::Secret, io::Error> {

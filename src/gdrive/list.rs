@@ -1,6 +1,9 @@
 use crate::config;
 use crate::config::Config;
 use crate::hub;
+use std::error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::io;
 
 pub async fn list() -> Result<(), Error> {
@@ -20,4 +23,15 @@ pub async fn list() -> Result<(), Error> {
 pub enum Error {
     Auth(io::Error),
     Config(config::Error),
+}
+
+impl error::Error for Error {}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Auth(e) => write!(f, "Auth error: {}", e),
+            Error::Config(e) => write!(f, "{}", e),
+        }
+    }
 }

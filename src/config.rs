@@ -1,5 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
+use std::error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -100,8 +103,12 @@ impl Config {
 
     pub fn load_account_config() -> Result<AccountConfig, Error> {
         let base_path = Config::default_base_path()?;
-        let content = fs::read_to_string(base_path.join(ACCOUNT_CONFIG_NAME))
-            .map_err(Error::ReadAccountConfig)?;
+        let account_config_path = base_path.join(ACCOUNT_CONFIG_NAME);
+        account_config_path
+            .exists()
+            .then_some(())
+            .ok_or(Error::AccountConfigMissing)?;
+        let content = fs::read_to_string(account_config_path).map_err(Error::ReadAccountConfig)?;
         serde_json::from_str(&content).map_err(Error::DeserializeAccountConfig)
     }
 
@@ -141,7 +148,8 @@ impl Config {
     }
 
     fn create_account_dir(&self) -> Result<(), Error> {
-        fs::create_dir_all(&self.account_base_path()).map_err(Error::CreateConfigDir)?;
+        let path = self.account_base_path();
+        fs::create_dir_all(&path).map_err(Error::CreateConfigDir)?;
         Ok(())
     }
 }
@@ -175,6 +183,7 @@ pub enum Error {
     HomeDirNotFound,
     CreateConfigDir(io::Error),
     ReadAccountConfig(io::Error),
+    AccountConfigMissing,
     ParseAccountConfig(serde_json::Error),
     SerializeAccountConfig(serde_json::Error),
     WriteAccountConfig(io::Error),
@@ -187,4 +196,94 @@ pub enum Error {
     ListFiles(io::Error),
     RemoveAccountDir(io::Error),
     RemoveAccountConfig(io::Error),
+}
+
+impl error::Error for Error {}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::HomeDirNotFound => {
+                // fmt
+                write!(f, "Home directory not found")
+            }
+
+            Error::CreateConfigDir(err) => {
+                // fmt
+                write!(f, "Failed to create config directory: {}", err)
+            }
+
+            Error::ReadAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to read account config: {}", err)
+            }
+
+            Error::AccountConfigMissing => {
+                // fmt
+                writeln!(f, "No account has been selected")?;
+                writeln!(f, "Use `gdrive account list` to show all accounts.")?;
+                write!(f, "Use `gdrive account switch` to select an account.")
+            }
+
+            Error::ParseAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to parse account config: {}", err)
+            }
+
+            Error::SerializeAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to serialize account config: {}", err)
+            }
+
+            Error::WriteAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to write account config: {}", err)
+            }
+
+            Error::SerializeSecret(err) => {
+                // fmt
+                write!(f, "Failed to serialize secret: {}", err)
+            }
+
+            Error::WriteSecret(err) => {
+                // fmt
+                write!(f, "Failed to write secret: {}", err)
+            }
+
+            Error::ReadSecret(err) => {
+                // fmt
+                write!(f, "Failed to read secret: {}", err)
+            }
+
+            Error::DeserializeSecret(err) => {
+                // fmt
+                write!(f, "Failed to deserialize secret: {}", err)
+            }
+
+            Error::DeserializeAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to deserialize account config: {}", err)
+            }
+
+            Error::CopyTokens(err) => {
+                // fmt
+                write!(f, "Failed to copy tokens: {}", err)
+            }
+
+            Error::ListFiles(err) => {
+                // fmt
+                write!(f, "Failed to list files: {}", err)
+            }
+
+            Error::RemoveAccountDir(err) => {
+                // fmt
+                write!(f, "Failed to remove account directory: {}", err)
+            }
+
+            Error::RemoveAccountConfig(err) => {
+                // fmt
+                write!(f, "Failed to remove account config: {}", err)
+            }
+        }
+    }
 }

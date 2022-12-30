@@ -3,6 +3,8 @@ pub mod config;
 pub mod gdrive;
 pub mod hub;
 
+use std::error::Error;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -51,54 +53,46 @@ enum AccountCommand {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+
     match cli.command {
         Command::Account { command } => {
             // fmt
             match command {
                 AccountCommand::Add => {
                     // fmt
-                    if let Err(err) = account::add().await {
-                        eprintln!("Error: {:?}", err);
-                    }
+                    account::add().await.unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::List => {
                     // fmt
-                    if let Err(err) = account::list() {
-                        eprintln!("Error: {:?}", err);
-                    }
+                    account::list().unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Current => {
                     // fmt
-                    if let Err(err) = account::current() {
-                        eprintln!("Error: {:?}", err);
-                    }
+                    account::current().unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Switch { account_name } => {
                     // fmt
-                    if let Err(err) = account::switch(&account_name) {
-                        eprintln!("Error: {:?}", err);
-                    }
+                    account::switch(&account_name).unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Remove { account_name } => {
                     // fmt
-                    if let Err(err) = account::remove(&account_name) {
-                        eprintln!("Error: {:?}", err);
-                    }
+                    account::remove(&account_name).unwrap_or_else(handle_error)
                 }
             }
         }
 
         Command::List => {
             // fmt
-            if let Err(err) = gdrive::list().await {
-                eprintln!("Error: {:?}", err);
-            }
+            gdrive::list().await.unwrap_or_else(handle_error)
         }
     }
+}
 
-    ()
+fn handle_error(err: impl Error) {
+    eprintln!("Error: {}", err);
+    std::process::exit(1);
 }
