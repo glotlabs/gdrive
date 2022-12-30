@@ -26,6 +26,7 @@ jobs:
         run: |
           cargo build --release
           tar -czf $ARCHIVE_NAME -C target/release $APP_NAME
+        shell: bash
 
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
