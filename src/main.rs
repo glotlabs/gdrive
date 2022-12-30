@@ -28,6 +28,9 @@ enum Command {
 enum AccountCommand {
     /// add
     Add,
+
+    /// list
+    List,
 }
 
 #[tokio::main]
@@ -39,7 +42,14 @@ async fn main() {
             match command {
                 AccountCommand::Add => {
                     // fmt
-                    if let Err(err) = account::add::add().await {
+                    if let Err(err) = account::add().await {
+                        eprintln!("Error: {:?}", err);
+                    }
+                }
+
+                AccountCommand::List => {
+                    // fmt
+                    if let Err(err) = account::list() {
                         eprintln!("Error: {:?}", err);
                     }
                 }
@@ -48,7 +58,7 @@ async fn main() {
 
         Command::List => {
             // fmt
-            if let Err(err) = gdrive::list::list().await {
+            if let Err(err) = gdrive::list().await {
                 eprintln!("Error: {:?}", err);
             }
         }

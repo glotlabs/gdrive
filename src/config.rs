@@ -50,6 +50,22 @@ impl Config {
         Ok(config)
     }
 
+    pub fn list_accounts() -> Result<Vec<String>, Error> {
+        let base_path = Config::default_base_path()?;
+        let entries = fs::read_dir(base_path).map_err(Error::ListFiles)?;
+
+        let mut accounts: Vec<String> = entries
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.path().is_dir())
+            .filter(|entry| entry.path().join(TOKENS_CONFIG_NAME).exists())
+            .map(|entry| entry.file_name().to_string_lossy().to_string())
+            .collect();
+
+        accounts.sort();
+
+        Ok(accounts)
+    }
+
     pub fn save_secret(&self, secret: &Secret) -> Result<(), Error> {
         let content = serde_json::to_string_pretty(&secret).map_err(Error::SerializeSecret)?;
         fs::write(&self.secret_path(), content).map_err(Error::WriteSecret)?;
@@ -147,4 +163,5 @@ pub enum Error {
     DeserializeSecret(serde_json::Error),
     DeserializeAccountConfig(serde_json::Error),
     CopyTokens(io::Error),
+    ListFiles(io::Error),
 }
