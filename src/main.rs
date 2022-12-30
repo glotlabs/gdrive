@@ -31,6 +31,9 @@ enum AccountCommand {
 
     /// list
     List,
+
+    /// current
+    Current,
 }
 
 #[tokio::main]
@@ -50,6 +53,13 @@ async fn main() {
                 AccountCommand::List => {
                     // fmt
                     if let Err(err) = account::list() {
+                        eprintln!("Error: {:?}", err);
+                    }
+                }
+
+                AccountCommand::Current => {
+                    // fmt
+                    if let Err(err) = account::current() {
                         eprintln!("Error: {:?}", err);
                     }
                 }
