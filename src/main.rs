@@ -2,6 +2,7 @@ pub mod account;
 pub mod config;
 pub mod gdrive;
 pub mod hub;
+pub mod version;
 
 use std::error::Error;
 
@@ -24,6 +25,9 @@ enum Command {
 
     /// list commands
     List,
+
+    /// version
+    Version,
 }
 
 #[derive(Subcommand)]
@@ -88,6 +92,11 @@ async fn main() {
         Command::List => {
             // fmt
             gdrive::list().await.unwrap_or_else(handle_error)
+        }
+
+        Command::Version => {
+            // fmt
+            version::version()
         }
     }
 }
