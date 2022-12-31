@@ -9,11 +9,11 @@ Join our [discord server](https://discord.gg/zPcdFUqKeQ) to discuss everything g
 
 ## Sponsor
 Help keep this project alive. By sponsoring the [gdrive tier](https://github.com/sponsors/prasmussen)
-your will support:
-* Maintenance and keeping up with the api
+you will help support:
+* Keeping up with api changes
 * Development of new features
 * Fixing and answering of issues
-* Writing of guides and documentation
+* Writing of guides and docs
 
 ## Getting started
 
