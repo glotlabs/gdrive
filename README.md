@@ -3,3 +3,6 @@
 
 ## Overview
 gdrive is a command line utility for interacting with Google Drive.
+
+### Requirements
+* Google Oauth Client credentials, see [docs](/docs/create_google_api_credentials.md)
