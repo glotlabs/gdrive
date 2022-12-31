@@ -4,6 +4,17 @@
 ## Overview
 gdrive is a command line utility for interacting with Google Drive. This is the successor of [gdrive2](https://github.com/prasmussen/gdrive), though at the moment only the most basic functionality is implemented.
 
+## Community
+Join our [discord server](https://discord.gg/zPcdFUqKeQ) to discuss everything gdrive.
+
+## Sponsor
+Help keep this project alive. By sponsoring the [gdrive tier](https://github.com/sponsors/prasmussen)
+your will support:
+* Maintenance and keeping up with the api
+* Development of new features
+* Fixing and answering of issues
+* Writing of guides and documentation
+
 ## Getting started
 
 ### Requirements
