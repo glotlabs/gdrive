@@ -29,16 +29,10 @@ enum Command {
         command: AccountCommand,
     },
 
-    /// List files
-    List,
-
-    /// List files
-    Upload {
-        /// Path of file to upload
-        file_path: PathBuf,
-
-        /// Force mime type (default: auto-detect)
-        mime_type: Option<Mime>,
+    /// Commands for managing files
+    Files {
+        #[command(subcommand)]
+        command: FileCommand,
     },
 
     /// Print version information
@@ -66,6 +60,21 @@ enum AccountCommand {
     Remove {
         /// account name
         account_name: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum FileCommand {
+    /// List files
+    List,
+
+    /// Upload files
+    Upload {
+        /// Path of file to upload
+        file_path: PathBuf,
+
+        /// Force mime type (default: auto-detect)
+        mime_type: Option<Mime>,
     },
 }
 
@@ -109,22 +118,26 @@ async fn main() {
             }
         }
 
-        Command::List => {
-            // fmt
-            files::list().await.unwrap_or_else(handle_error)
-        }
+        Command::Files { command } => {
+            match command {
+                FileCommand::List => {
+                    // fmt
+                    files::list().await.unwrap_or_else(handle_error)
+                }
 
-        Command::Upload {
-            file_path,
-            mime_type,
-        } => {
-            // fmt
-            files::upload(files::upload::Config {
-                file_path,
-                mime_type,
-            })
-            .await
-            .unwrap_or_else(handle_error)
+                FileCommand::Upload {
+                    file_path,
+                    mime_type,
+                } => {
+                    // fmt
+                    files::upload(files::upload::Config {
+                        file_path,
+                        mime_type,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+            }
         }
 
         Command::Version => {
