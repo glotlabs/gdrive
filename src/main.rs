@@ -18,40 +18,40 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// About gdrive
+    /// Print information about gdrive
     About,
 
-    /// account commands
+    /// Commands for managing accounts
     Account {
         #[command(subcommand)]
         command: AccountCommand,
     },
 
-    /// list commands
+    /// List files
     List,
 
-    /// version
+    /// Print version information
     Version,
 }
 
 #[derive(Subcommand)]
 enum AccountCommand {
-    /// add
+    /// Add an account
     Add,
 
-    /// list
+    /// List all accounts
     List,
 
-    /// current
+    /// Print current account
     Current,
 
-    /// switch
+    /// Switch to a different account
     Switch {
-        /// account name
+        /// Account name
         account_name: String,
     },
 
-    /// remove
+    /// Remove an account
     Remove {
         /// account name
         account_name: String,
