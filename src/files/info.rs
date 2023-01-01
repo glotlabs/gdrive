@@ -35,7 +35,7 @@ pub async fn get_file(
     Ok(file)
 }
 
-fn print_file_info(file: &google_drive3::api::File) {
+pub fn print_file_info(file: &google_drive3::api::File) {
     println!("Id: {}", format_optional_field(&file.id));
     println!("Name: {}", format_optional_field(&file.name));
     println!("Mime: {}", format_optional_field(&file.mime_type));

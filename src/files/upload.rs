@@ -3,6 +3,7 @@ use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::hub_helper;
+use crate::files;
 use crate::hub::Hub;
 use mime::Mime;
 use std::error;
@@ -57,10 +58,8 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::Upload)?;
 
-    println!(
-        "File successfully uploaded with id: {}",
-        file.id.unwrap_or_default()
-    );
+    println!("File successfully uploaded");
+    files::info::print_file_info(&file);
 
     Ok(())
 }
