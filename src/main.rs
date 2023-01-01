@@ -1,3 +1,4 @@
+pub mod about;
 pub mod account;
 pub mod config;
 pub mod gdrive;
@@ -17,6 +18,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// About gdrive
+    About,
+
     /// account commands
     Account {
         #[command(subcommand)]
@@ -59,6 +63,11 @@ async fn main() {
     let cli = Cli::parse();
 
     match cli.command {
+        Command::About => {
+            // fmt
+            about::about()
+        }
+
         Command::Account { command } => {
             // fmt
             match command {
