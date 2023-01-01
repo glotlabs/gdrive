@@ -10,7 +10,7 @@ use std::error::Error;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, disable_version_flag = true)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
