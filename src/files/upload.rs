@@ -53,7 +53,9 @@ pub async fn upload(config: Config) -> Result<(), Error> {
 
     println!("Uploading {}", config.file_path.display());
 
-    let file = upload_file(&hub, reader, file_info, &mut delegate).await?;
+    let file = upload_file(&hub, reader, file_info, &mut delegate)
+        .await
+        .map_err(Error::Upload)?;
 
     println!(
         "File successfully uploaded with id: {}",
@@ -73,7 +75,7 @@ pub async fn upload_file<'a, RS>(
     src_file: RS,
     file_info: FileInfo,
     delegate: &'a mut dyn google_drive3::client::Delegate,
-) -> Result<google_drive3::api::File, Error>
+) -> Result<google_drive3::api::File, google_drive3::Error>
 where
     RS: google_drive3::client::ReadSeek,
 {
@@ -89,8 +91,7 @@ where
         .delegate(delegate)
         .supports_all_drives(true)
         .upload_resumable(src_file, file_info.mime_type)
-        .await
-        .map_err(Error::Upload)?;
+        .await?;
 
     Ok(file)
 }
@@ -113,7 +114,7 @@ impl Display for Error {
             Error::OpenFile(path, err) => {
                 write!(f, "Failed to open file '{}': {}", path.display(), err)
             }
-            Error::Upload(err) => write!(f, "Upload error: {}", err),
+            Error::Upload(err) => write!(f, "Failed to upload file: {}", err),
         }
     }
 }

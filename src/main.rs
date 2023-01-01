@@ -65,6 +65,12 @@ enum AccountCommand {
 
 #[derive(Subcommand)]
 enum FileCommand {
+    /// Print file info
+    Info {
+        /// File id
+        file_id: String,
+    },
+
     /// List files
     List,
 
@@ -120,6 +126,13 @@ async fn main() {
 
         Command::Files { command } => {
             match command {
+                FileCommand::Info { file_id } => {
+                    // fmt
+                    files::info(files::info::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
+                }
+
                 FileCommand::List => {
                     // fmt
                     files::list().await.unwrap_or_else(handle_error)
