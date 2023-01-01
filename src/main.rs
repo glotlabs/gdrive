@@ -1,13 +1,15 @@
 pub mod about;
 pub mod account;
+pub mod common;
 pub mod config;
 pub mod gdrive;
 pub mod hub;
 pub mod version;
 
-use std::error::Error;
+use std::{error::Error, path::PathBuf};
 
 use clap::{Parser, Subcommand};
+use mime::Mime;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None, disable_version_flag = true)]
@@ -29,6 +31,15 @@ enum Command {
 
     /// List files
     List,
+
+    /// List files
+    Upload {
+        /// Path of file to upload
+        file_path: PathBuf,
+
+        /// Force mime type (default: auto-detect)
+        mime_type: Option<Mime>,
+    },
 
     /// Print version information
     Version,
@@ -101,6 +112,19 @@ async fn main() {
         Command::List => {
             // fmt
             gdrive::list().await.unwrap_or_else(handle_error)
+        }
+
+        Command::Upload {
+            file_path,
+            mime_type,
+        } => {
+            // fmt
+            gdrive::upload(gdrive::upload::Config {
+                file_path,
+                mime_type,
+            })
+            .await
+            .unwrap_or_else(handle_error)
         }
 
         Command::Version => {
