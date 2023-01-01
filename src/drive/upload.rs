@@ -108,7 +108,7 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Hub(err) => write!(f, "Hub error: {}", err),
+            Error::Hub(err) => write!(f, "{}", err),
             Error::InvalidFilePath(path) => write!(f, "Invalid file path: {}", path.display()),
             Error::OpenFile(path, err) => {
                 write!(f, "Failed to open file '{}': {}", path.display(), err)
