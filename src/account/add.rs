@@ -72,7 +72,8 @@ impl Display for Error {
 }
 
 fn secret_prompt() -> Result<config::Secret, io::Error> {
-    println!("A client id and client secret are required to use this application.");
+    println!("To add an account you need a Google Client ID and Client Secret.");
+    println!("Instructions for how to create credentials can be found here: https://github.com/glotlabs/gdrive/blob/main/docs/create_google_api_credentials.md");
     println!();
 
     let client_id = prompt_input("Client ID")?;

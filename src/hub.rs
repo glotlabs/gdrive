@@ -101,7 +101,9 @@ impl InstalledFlowDelegate for AuthDelegate {
 
 async fn present_user_url(url: &str) -> Result<String, String> {
     println!();
-    println!("Open the url in your browser and follow the instructions displayed there:");
+    println!();
+    println!("Gdrive requires permissions to manage your files on Google Drive.");
+    println!("Open the url in your browser and follow the instructions:");
     println!("{}", url);
     Ok(String::new())
 }
