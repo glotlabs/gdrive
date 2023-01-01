@@ -2,7 +2,7 @@ pub mod about;
 pub mod account;
 pub mod common;
 pub mod config;
-pub mod drive;
+pub mod files;
 pub mod hub;
 pub mod version;
 
@@ -111,7 +111,7 @@ async fn main() {
 
         Command::List => {
             // fmt
-            drive::list().await.unwrap_or_else(handle_error)
+            files::list().await.unwrap_or_else(handle_error)
         }
 
         Command::Upload {
@@ -119,7 +119,7 @@ async fn main() {
             mime_type,
         } => {
             // fmt
-            drive::upload(drive::upload::Config {
+            files::upload(files::upload::Config {
                 file_path,
                 mime_type,
             })
