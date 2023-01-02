@@ -12,6 +12,13 @@ use std::path::PathBuf;
 
 pub struct Config {
     pub file_id: String,
+    pub existing_file_action: ExistingFileAction,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ExistingFileAction {
+    Abort,
+    Overwrite,
 }
 
 pub async fn download(config: Config) -> Result<(), Error> {
@@ -27,6 +34,8 @@ pub async fn download(config: Config) -> Result<(), Error> {
 
     let file_name = file.name.ok_or(Error::MissingFileName)?;
     let file_path = PathBuf::from(&file_name);
+
+    err_if_file_exists(&file_path, config.existing_file_action)?;
 
     println!("Downloading {}", file_name);
     save_body_to_file(body, &file_path)
@@ -56,6 +65,7 @@ pub enum Error {
     GetFile(google_drive3::Error),
     DownloadFile(google_drive3::Error),
     MissingFileName,
+    FileExists(PathBuf),
     SaveToFile(io::Error),
 }
 
@@ -68,8 +78,21 @@ impl Display for Error {
             Error::GetFile(err) => write!(f, "Failed getting file: {}", err),
             Error::DownloadFile(err) => write!(f, "Failed to download file: {}", err),
             Error::MissingFileName => write!(f, "File does not have a name"),
+            Error::FileExists(path) => write!(
+                f,
+                "File '{}' already exists, use --overwrite to overwrite it",
+                path.display()
+            ),
             Error::SaveToFile(err) => write!(f, "Failed to save file: {}", err),
         }
+    }
+}
+
+fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result<(), Error> {
+    if file_path.exists() && action == ExistingFileAction::Abort {
+        Err(Error::FileExists(file_path.clone()))
+    } else {
+        Ok(())
     }
 }
 

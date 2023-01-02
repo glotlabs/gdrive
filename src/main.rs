@@ -6,10 +6,10 @@ pub mod files;
 pub mod hub;
 pub mod version;
 
-use std::{error::Error, path::PathBuf};
-
 use clap::{Parser, Subcommand};
+use files::download::ExistingFileAction;
 use mime::Mime;
+use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None, disable_version_flag = true)]
@@ -87,6 +87,10 @@ enum FileCommand {
     Download {
         /// File id
         file_id: String,
+
+        /// Overwrite existing files
+        #[arg(long)]
+        overwrite: bool,
     },
 }
 
@@ -157,11 +161,19 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Download { file_id } => {
-                    // fmt
-                    files::download(files::download::Config { file_id })
-                        .await
-                        .unwrap_or_else(handle_error)
+                FileCommand::Download { file_id, overwrite } => {
+                    let existing_file_action = if overwrite {
+                        ExistingFileAction::Overwrite
+                    } else {
+                        ExistingFileAction::Abort
+                    };
+
+                    files::download(files::download::Config {
+                        file_id,
+                        existing_file_action,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
             }
         }
