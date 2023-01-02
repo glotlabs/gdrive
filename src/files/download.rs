@@ -6,6 +6,7 @@ use google_drive3::hyper::body::Buf;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
@@ -97,8 +98,19 @@ fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result
 }
 
 async fn save_body_to_file(body: hyper::Body, file_path: &PathBuf) -> Result<u64, io::Error> {
-    let mut file = File::create(&file_path)?;
+    // Create temporary file
+    let tmp_file_path = file_path.with_extension("incomplete");
+    let mut file = File::create(&tmp_file_path)?;
+
+    // Get body reader
     let buf = hyper::body::aggregate(body).await.unwrap();
     let mut reader = buf.reader();
-    io::copy(&mut reader, &mut file)
+
+    // Copy body to file
+    let byte_count = io::copy(&mut reader, &mut file)?;
+
+    // Rename temporary file to final file
+    fs::rename(&tmp_file_path, &file_path)?;
+
+    Ok(byte_count)
 }
