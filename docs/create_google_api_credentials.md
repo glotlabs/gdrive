@@ -14,7 +14,7 @@ Google has made it really easy to create api credentials for own use, just follo
 10. Click the `Save and continue` button. If you get `An error saving your app has occurred` try changing the project name to something unique
 11. Click the `Add or remove scopes` button
 12. Search for `google drive api`
-13. Select the scopes `.../auth/drive` and `.../auth/drive/metadata.readonly` [[screenshot]](https://user-images.githubusercontent.com/720405/210137392-f851aa1e-ea59-4c19-885e-d246992c4dd7.png)
+13. Select the scopes `.../auth/drive` and `.../auth/drive.metadata.readonly` [[screenshot]](https://user-images.githubusercontent.com/720405/210137392-f851aa1e-ea59-4c19-885e-d246992c4dd7.png)
 14. Click the `Update` button
 15. Click the `Save and continue` button [[screenshot]](https://user-images.githubusercontent.com/720405/210137425-44cab632-c885-495d-bb10-3b6e842ed79a.png)
 16. Click the `Add users` button
