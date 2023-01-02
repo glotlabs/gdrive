@@ -82,6 +82,12 @@ enum FileCommand {
         /// Force mime type (default: auto-detect)
         mime_type: Option<Mime>,
     },
+
+    /// Download files
+    Download {
+        /// File id
+        file_id: String,
+    },
 }
 
 #[tokio::main]
@@ -149,6 +155,13 @@ async fn main() {
                     })
                     .await
                     .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Download { file_id } => {
+                    // fmt
+                    files::download(files::download::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
             }
         }
