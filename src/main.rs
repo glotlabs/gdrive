@@ -4,6 +4,7 @@ pub mod common;
 pub mod config;
 pub mod files;
 pub mod hub;
+pub mod md5_reader;
 pub mod version;
 
 use clap::{Parser, Subcommand};

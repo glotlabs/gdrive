@@ -27,6 +27,7 @@ pub async fn get_file(
     let (_, file) = hub
         .files()
         .get(file_id)
+        .param("fields", "id,name,mimeType,md5Checksum")
         .supports_all_drives(true)
         .add_scope(google_drive3::api::Scope::Full)
         .doit()
@@ -39,6 +40,7 @@ pub fn print_file_info(file: &google_drive3::api::File) {
     println!("Id: {}", format_optional_field(&file.id));
     println!("Name: {}", format_optional_field(&file.name));
     println!("Mime: {}", format_optional_field(&file.mime_type));
+    println!("Md5: {}", format_optional_field(&file.md5_checksum));
 
     // Id: 0B3X9GlR6EmbnNTk0SkV0bm5Hd0E
     // Name: gdrive-osx-x64

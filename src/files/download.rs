@@ -1,6 +1,7 @@
 use crate::common::hub_helper;
 use crate::files;
 use crate::hub::Hub;
+use crate::md5_reader::Md5Reader;
 use google_drive3::hyper;
 use google_drive3::hyper::body::Buf;
 use std::error;
@@ -39,9 +40,7 @@ pub async fn download(config: Config) -> Result<(), Error> {
     err_if_file_exists(&file_path, config.existing_file_action)?;
 
     println!("Downloading {}", file_name);
-    save_body_to_file(body, &file_path)
-        .await
-        .map_err(Error::SaveToFile)?;
+    save_body_to_file(body, &file_path, file.md5_checksum).await?;
     println!("Successfully downloaded {} ", file_name,);
 
     Ok(())
@@ -67,7 +66,10 @@ pub enum Error {
     DownloadFile(google_drive3::Error),
     MissingFileName,
     FileExists(PathBuf),
-    SaveToFile(io::Error),
+    Md5Mismatch { expected: String, actual: String },
+    CreateFile(io::Error),
+    CopyFile(io::Error),
+    RenameFile(io::Error),
 }
 
 impl error::Error for Error {}
@@ -84,9 +86,47 @@ impl Display for Error {
                 "File '{}' already exists, use --overwrite to overwrite it",
                 path.display()
             ),
-            Error::SaveToFile(err) => write!(f, "Failed to save file: {}", err),
+            Error::Md5Mismatch { expected, actual } => {
+                // fmt
+                write!(
+                    f,
+                    "MD5 mismatch, expected: {}, actual: {}",
+                    expected, actual
+                )
+            }
+            Error::CreateFile(err) => write!(f, "Failed to create file: {}", err),
+            Error::CopyFile(err) => write!(f, "Failed to copy file: {}", err),
+            Error::RenameFile(err) => write!(f, "Failed to rename file: {}", err),
         }
     }
+}
+
+async fn save_body_to_file(
+    body: hyper::Body,
+    file_path: &PathBuf,
+    expected_md5: Option<String>,
+) -> Result<u64, Error> {
+    // Create temporary file
+    let tmp_file_path = file_path.with_extension("incomplete");
+    let mut file = File::create(&tmp_file_path).map_err(Error::CreateFile)?;
+
+    // Get body reader
+    let buf = hyper::body::aggregate(body).await.unwrap();
+    let mut reader = Md5Reader {
+        context: md5::Context::new(),
+        reader: buf.reader(),
+    };
+
+    // Copy body to file
+    let byte_count = io::copy(&mut reader, &mut file).map_err(Error::CopyFile)?;
+
+    // Check md5
+    err_if_md5_mismatch(expected_md5, reader.md5())?;
+
+    // Rename temporary file to final file
+    fs::rename(&tmp_file_path, &file_path).map_err(Error::RenameFile)?;
+
+    Ok(byte_count)
 }
 
 fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result<(), Error> {
@@ -97,20 +137,15 @@ fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result
     }
 }
 
-async fn save_body_to_file(body: hyper::Body, file_path: &PathBuf) -> Result<u64, io::Error> {
-    // Create temporary file
-    let tmp_file_path = file_path.with_extension("incomplete");
-    let mut file = File::create(&tmp_file_path)?;
+fn err_if_md5_mismatch(expected: Option<String>, actual: String) -> Result<(), Error> {
+    let is_matching = expected.clone().map(|md5| md5 == actual).unwrap_or(true);
 
-    // Get body reader
-    let buf = hyper::body::aggregate(body).await.unwrap();
-    let mut reader = buf.reader();
-
-    // Copy body to file
-    let byte_count = io::copy(&mut reader, &mut file)?;
-
-    // Rename temporary file to final file
-    fs::rename(&tmp_file_path, &file_path)?;
-
-    Ok(byte_count)
+    if is_matching {
+        Ok(())
+    } else {
+        Err(Error::Md5Mismatch {
+            expected: expected.unwrap_or_default(),
+            actual,
+        })
+    }
 }
