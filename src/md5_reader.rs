@@ -4,11 +4,18 @@ use std::io;
 use std::io::Read;
 
 pub struct Md5Reader<T> {
-    pub context: md5::Context,
     pub reader: Reader<T>,
+    context: md5::Context,
 }
 
 impl<T> Md5Reader<T> {
+    pub fn new(reader: Reader<T>) -> Self {
+        Self {
+            reader,
+            context: md5::Context::new(),
+        }
+    }
+
     pub fn md5(self) -> String {
         format!("{:x}", self.context.compute())
     }

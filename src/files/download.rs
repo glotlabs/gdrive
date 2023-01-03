@@ -112,10 +112,7 @@ async fn save_body_to_file(
 
     // Get body reader
     let buf = hyper::body::aggregate(body).await.unwrap();
-    let mut reader = Md5Reader {
-        context: md5::Context::new(),
-        reader: buf.reader(),
-    };
+    let mut reader = Md5Reader::new(buf.reader());
 
     // Copy body to file
     let byte_count = io::copy(&mut reader, &mut file).map_err(Error::CopyFile)?;
