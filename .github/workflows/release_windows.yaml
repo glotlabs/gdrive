@@ -39,4 +39,4 @@ jobs:
           upload_url: ${{ env.UPLOAD_URL }}
           asset_path: ${{ env.ARCHIVE_NAME }}
           asset_name: ${{ env.ARCHIVE_NAME }}
-          asset_content_type: application/gzip
+          asset_content_type: application/zip
