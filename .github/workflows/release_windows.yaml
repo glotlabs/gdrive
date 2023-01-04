@@ -6,7 +6,7 @@ on:
 
 env:
   APP_NAME: gdrive
-  ARCHIVE_NAME: gdrive_windows-x64.tar.gz
+  ARCHIVE_NAME: gdrive_windows-x64.zip
 
 jobs:
   build:
@@ -25,7 +25,10 @@ jobs:
       - name: Build application
         run: |
           cargo build --release
-          tar -czf $ARCHIVE_NAME -C target/release $APP_NAME
+          cd target/release
+          mv $APP_NAME $APP_NAME.exe
+          7z a -tzip $ARCHIVE_NAME $APP_NAME.exe
+          mv $ARCHIVE_NAME ../../
         shell: bash
 
       - name: Upload release asset
