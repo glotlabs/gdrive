@@ -87,7 +87,12 @@ enum FileCommand {
         file_path: PathBuf,
 
         /// Force mime type [default: auto-detect]
-        mime_type: Option<Mime>,
+        #[arg(long, value_name = "MIME_TYPE")]
+        mime: Option<Mime>,
+
+        /// Upload to an existing folder, multiple parents can be specified
+        #[arg(long, value_name = "ID")]
+        parent: Option<Vec<String>>,
     },
 
     /// Download files
@@ -163,12 +168,14 @@ async fn main() {
 
                 FileCommand::Upload {
                     file_path,
-                    mime_type,
+                    mime,
+                    parent,
                 } => {
                     // fmt
                     files::upload(files::upload::Config {
                         file_path,
-                        mime_type,
+                        mime_type: mime,
+                        parents: parent,
                     })
                     .await
                     .unwrap_or_else(handle_error)

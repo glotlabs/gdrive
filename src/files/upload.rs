@@ -17,6 +17,7 @@ use std::time::Duration;
 pub struct Config {
     pub file_path: PathBuf,
     pub mime_type: Option<Mime>,
+    pub parents: Option<Vec<String>>,
 }
 
 pub async fn upload(config: Config) -> Result<(), Error> {
@@ -46,6 +47,7 @@ pub async fn upload(config: Config) -> Result<(), Error> {
     let file_info = FileInfo {
         name: file_name,
         mime_type,
+        parents: config.parents,
     };
 
     let file = fs::File::open(&config.file_path)
@@ -67,6 +69,7 @@ pub async fn upload(config: Config) -> Result<(), Error> {
 pub struct FileInfo {
     pub name: String,
     pub mime_type: mime::Mime,
+    pub parents: Option<Vec<String>>,
 }
 
 pub async fn upload_file<'a, RS>(
@@ -80,6 +83,7 @@ where
 {
     let dst_file = google_drive3::api::File {
         name: Some(file_info.name),
+        parents: file_info.parents,
         ..google_drive3::api::File::default()
     };
 
