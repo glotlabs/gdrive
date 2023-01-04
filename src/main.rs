@@ -184,6 +184,7 @@ async fn main() {
                     files::download(files::download::Config {
                         file_id,
                         existing_file_action,
+                        download_directories: false,
                     })
                     .await
                     .unwrap_or_else(handle_error)

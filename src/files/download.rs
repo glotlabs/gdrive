@@ -1,3 +1,4 @@
+use crate::common::drive_file;
 use crate::common::hub_helper;
 use crate::files;
 use crate::hub::Hub;
@@ -15,6 +16,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub file_id: String,
     pub existing_file_action: ExistingFileAction,
+    pub download_directories: bool,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -30,14 +32,15 @@ pub async fn download(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::GetFile)?;
 
-    let body = download_file(&hub, &config.file_id)
-        .await
-        .map_err(Error::DownloadFile)?;
-
-    let file_name = file.name.ok_or(Error::MissingFileName)?;
+    let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
     let file_path = PathBuf::from(&file_name);
 
     err_if_file_exists(&file_path, config.existing_file_action)?;
+    err_if_directory(&file, &config)?;
+
+    let body = download_file(&hub, &config.file_id)
+        .await
+        .map_err(Error::DownloadFile)?;
 
     println!("Downloading {}", file_name);
     save_body_to_file(body, &file_path, file.md5_checksum).await?;
@@ -66,6 +69,7 @@ pub enum Error {
     DownloadFile(google_drive3::Error),
     MissingFileName,
     FileExists(PathBuf),
+    IsDirectory(String),
     Md5Mismatch { expected: String, actual: String },
     CreateFile(io::Error),
     CopyFile(io::Error),
@@ -85,6 +89,11 @@ impl Display for Error {
                 f,
                 "File '{}' already exists, use --overwrite to overwrite it",
                 path.display()
+            ),
+            Error::IsDirectory(name) => write!(
+                f,
+                "'{}' is a directory, use --recursive to download directories",
+                name
             ),
             Error::Md5Mismatch { expected, actual } => {
                 // fmt
@@ -129,6 +138,19 @@ async fn save_body_to_file(
 fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result<(), Error> {
     if file_path.exists() && action == ExistingFileAction::Abort {
         Err(Error::FileExists(file_path.clone()))
+    } else {
+        Ok(())
+    }
+}
+
+fn err_if_directory(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
+    if drive_file::is_directory(file) && !config.download_directories {
+        let name = file
+            .name
+            .as_ref()
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        Err(Error::IsDirectory(name))
     } else {
         Ok(())
     }
