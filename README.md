@@ -47,3 +47,7 @@ Part of the flow for adding an account to gdrive requires your web browser to ac
 This makes it tricky to set up accounts on remote servers. The suggested workaround is to add the account to you local machine first
 and then copy the configuration to the remote server. A `account export` and `account import` function will be added later
 to simplify this process.
+
+### Credentials
+Gdrive saves your account credentials and tokens under `$HOME/.config/gdrive3/`.
+You don't usually need to use these files directly, but if someone gets access to them, they will also be able to access your Google Drive. Keep them safe.
