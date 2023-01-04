@@ -9,6 +9,8 @@ pub mod version;
 
 use clap::{Parser, Subcommand};
 use files::download::ExistingFileAction;
+use files::list::ListQuery;
+use files::list::ListSortOrder;
 use mime::Mime;
 use std::{error::Error, path::PathBuf};
 
@@ -73,14 +75,18 @@ enum FileCommand {
     },
 
     /// List files
-    List,
+    List {
+        /// Max files to list
+        #[arg(long, default_value_t = 30)]
+        max: usize,
+    },
 
     /// Upload files
     Upload {
         /// Path of file to upload
         file_path: PathBuf,
 
-        /// Force mime type (default: auto-detect)
+        /// Force mime type [default: auto-detect]
         mime_type: Option<Mime>,
     },
 
@@ -144,9 +150,15 @@ async fn main() {
                         .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::List => {
+                FileCommand::List { max } => {
                     // fmt
-                    files::list().await.unwrap_or_else(handle_error)
+                    files::list(files::list::Config {
+                        query: ListQuery::default(),
+                        order_by: ListSortOrder::default(),
+                        max_files: max,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::Upload {
