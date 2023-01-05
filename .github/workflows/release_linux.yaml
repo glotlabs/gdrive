@@ -21,9 +21,17 @@ jobs:
           UPLOAD_URL="$(jq -r '.release.upload_url' "$GITHUB_EVENT_PATH" | sed -e "s/{?name,label}$/?name=${ARCHIVE_NAME}/")"
           echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
 
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: x86_64-unknown-linux-musl
+          default: true
+
       - name: Build application
         run: |
-          cargo build --release
+          cargo build --release --target x86_64-unknown-linux-musl
           tar -czf $ARCHIVE_NAME -C target/release $APP_NAME
 
       - name: Upload release asset
