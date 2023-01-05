@@ -30,8 +30,12 @@ jobs:
           default: true
 
       - name: Build application
+        uses: zhxiaogg/cargo-static-build@master
+        with:
+          cmd: cargo build --release
+
+      - name: Create archive
         run: |
-          cargo build --release --target x86_64-unknown-linux-musl
           tar -czf $ARCHIVE_NAME -C target/release $APP_NAME
 
       - name: Upload release asset
