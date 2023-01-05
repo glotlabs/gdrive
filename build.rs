@@ -1,16 +1,19 @@
-use std::process::Command;
+use std::fs;
+use std::path::PathBuf;
 
 fn main() {
-    let git_hash = get_git_hash().unwrap_or_else(|| String::from("unknown"));
+    let git_hash = read_git_hash().unwrap_or_else(|| String::from("unknown"));
 
     println!("cargo:rustc-env=GIT_HASH={}", git_hash);
 }
 
-fn get_git_hash() -> Option<String> {
-    let output = Command::new("git")
-        .args(&["rev-parse", "HEAD"])
-        .output()
-        .ok()?;
+fn read_git_hash() -> Option<String> {
+    let git_base_path = PathBuf::from(".git");
 
-    String::from_utf8(output.stdout).ok()
+    let head_file_path = git_base_path.join("HEAD");
+    let head_content = fs::read_to_string(head_file_path).ok()?;
+
+    let head_ref = head_content.strip_prefix("ref: ")?;
+    let head_ref_path = git_base_path.join(head_ref.trim());
+    fs::read_to_string(head_ref_path).ok()
 }
