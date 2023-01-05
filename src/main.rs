@@ -72,6 +72,10 @@ enum FileCommand {
     Info {
         /// File id
         file_id: String,
+
+        /// Display size in bytes
+        #[arg(long, default_value_t = false)]
+        size_in_bytes: bool,
     },
 
     /// List files
@@ -148,11 +152,17 @@ async fn main() {
 
         Command::Files { command } => {
             match command {
-                FileCommand::Info { file_id } => {
+                FileCommand::Info {
+                    file_id,
+                    size_in_bytes,
+                } => {
                     // fmt
-                    files::info(files::info::Config { file_id })
-                        .await
-                        .unwrap_or_else(handle_error)
+                    files::info(files::info::Config {
+                        file_id,
+                        size_in_bytes,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::List { max } => {

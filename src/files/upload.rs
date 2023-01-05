@@ -4,6 +4,7 @@ use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::hub_helper;
 use crate::files;
+use crate::files::info::DisplayConfig;
 use crate::hub::Hub;
 use mime::Mime;
 use std::error;
@@ -61,7 +62,9 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         .map_err(Error::Upload)?;
 
     println!("File successfully uploaded");
-    files::info::print_file_info(&file);
+
+    let fields = files::info::prepare_fields(&file, &DisplayConfig::default());
+    files::info::print_fields(&fields);
 
     Ok(())
 }
@@ -90,6 +93,7 @@ where
     let (_body, file) = hub
         .files()
         .create(dst_file)
+        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink")
         .add_scope(google_drive3::api::Scope::Full)
         .delegate(delegate)
         .supports_all_drives(true)

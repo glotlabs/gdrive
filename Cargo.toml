@@ -11,6 +11,7 @@ clap = { version = "4.0.29", features = ["derive"] }
 exponential-backoff = "1.1.0"
 google-drive3 = { git = "https://github.com/Byron/google-apis-rs" }
 home = "0.5.4"
+human_bytes = { version = "0.4.1", default-features = false }
 md5 = "0.7.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
