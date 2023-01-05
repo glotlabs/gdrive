@@ -32,9 +32,5 @@ pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(
 }
 
 fn to_row<T: Display, const COLUMNS: usize>(columns: [T; COLUMNS]) -> String {
-    string_columns(columns).join("\t")
-}
-
-fn string_columns<T: Display, const COLUMNS: usize>(columns: [T; COLUMNS]) -> [String; COLUMNS] {
-    columns.map(|item| item.to_string())
+    columns.map(|c| c.to_string()).join("\t")
 }
