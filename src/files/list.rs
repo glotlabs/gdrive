@@ -1,9 +1,14 @@
+use crate::common::file_table;
+use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
+use crate::files;
+use crate::files::info::DisplayConfig;
 use std::cmp::min;
 use std::error;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::io;
 use std::str::FromStr;
 
 const MAX_PAGE_SIZE: usize = 1000;
@@ -17,9 +22,29 @@ pub struct Config {
 pub async fn list(config: Config) -> Result<(), Error> {
     let files = list_files(&config).await?;
 
+    let mut values: Vec<[String; 5]> = vec![];
+
     for file in files {
-        println!("{}", file.name.unwrap_or_default());
+        values.push([
+            file.id.unwrap_or_default(),
+            file.name.unwrap_or_default(),
+            file.mime_type.unwrap_or_default(),
+            file.size
+                .map(|bytes| files::info::format_bytes(bytes, &DisplayConfig::default()))
+                .unwrap_or_default(),
+            file.created_time
+                .map(files::info::format_date_time)
+                .unwrap_or_default(),
+        ])
     }
+
+    let table = FileTable {
+        header: ["Id", "Name", "Type", "Size", "Created"],
+        values,
+    };
+
+    let _ = file_table::write(io::stdout(), table);
+
     Ok(())
 }
 

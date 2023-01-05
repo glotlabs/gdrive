@@ -127,7 +127,7 @@ pub fn prepare_fields(file: &google_drive3::api::File, config: &DisplayConfig) -
     ]
 }
 
-fn format_bool(b: bool) -> String {
+pub fn format_bool(b: bool) -> String {
     if b {
         String::from("True")
     } else {
@@ -135,11 +135,11 @@ fn format_bool(b: bool) -> String {
     }
 }
 
-fn format_list(list: &Vec<String>) -> String {
+pub fn format_list(list: &Vec<String>) -> String {
     list.join(", ")
 }
 
-fn format_bytes(bytes: i64, config: &DisplayConfig) -> String {
+pub fn format_bytes(bytes: i64, config: &DisplayConfig) -> String {
     if config.size_in_bytes {
         bytes.to_string()
     } else {
@@ -147,7 +147,7 @@ fn format_bytes(bytes: i64, config: &DisplayConfig) -> String {
     }
 }
 
-fn format_date_time(utc_time: DateTime<chrono::Utc>) -> String {
+pub fn format_date_time(utc_time: DateTime<chrono::Utc>) -> String {
     let local_time: DateTime<chrono::Local> = DateTime::from(utc_time);
     local_time.format("%Y-%m-%d %H:%M:%S").to_string()
 }
