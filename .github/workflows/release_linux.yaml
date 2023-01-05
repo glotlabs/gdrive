@@ -10,7 +10,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -21,22 +21,13 @@ jobs:
           UPLOAD_URL="$(jq -r '.release.upload_url' "$GITHUB_EVENT_PATH" | sed -e "s/{?name,label}$/?name=${ARCHIVE_NAME}/")"
           echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          target: x86_64-unknown-linux-musl
-          default: true
-
       - name: Build application
-        uses: zhxiaogg/cargo-static-build@master
-        with:
-          cmd: cargo build --release
+        run: |
+          docker run --rm -t -v $HOME/.cargo/registry/:/root/.cargo/registry -v "$(pwd)":/volume clux/muslrust:stable cargo build --release
 
       - name: Create archive
         run: |
-          tar -czf $ARCHIVE_NAME -C target/release $APP_NAME
+          tar -czf $ARCHIVE_NAME -C target/x86_64-unknown-linux-musl/release $APP_NAME
 
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
