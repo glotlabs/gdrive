@@ -1,3 +1,4 @@
+use crate::common::drive_file;
 use crate::common::file_table;
 use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
@@ -25,10 +26,14 @@ pub async fn list(config: Config) -> Result<(), Error> {
     let mut values: Vec<[String; 5]> = vec![];
 
     for file in files {
+        let file_type = simplified_file_type(&file);
+
         values.push([
             file.id.unwrap_or_default(),
-            file.name.unwrap_or_default(),
-            file.mime_type.unwrap_or_default(),
+            file.name
+                .map(|s| truncate_middle(&s, 41))
+                .unwrap_or_default(),
+            file_type,
             file.size
                 .map(|bytes| files::info::format_bytes(bytes, &DisplayConfig::default()))
                 .unwrap_or_default(),
@@ -43,7 +48,7 @@ pub async fn list(config: Config) -> Result<(), Error> {
         values,
     };
 
-    let _ = file_table::write(io::stdout(), table);
+    let _ = file_table::write(io::stdout(), table, &file_table::DisplayConfig::default());
 
     Ok(())
 }
@@ -180,4 +185,32 @@ impl Display for Error {
             Error::ListFiles(e) => write!(f, "Failed to list files: {}", e),
         }
     }
+}
+
+fn simplified_file_type(file: &google_drive3::api::File) -> String {
+    if drive_file::is_directory(file) {
+        String::from("folder")
+    } else if drive_file::is_binary(file) {
+        String::from("regular")
+    } else {
+        String::from("document")
+    }
+}
+
+// Truncates string to given max length, and inserts ellipsis into
+// the middle of the string to signify that the string has been truncated
+fn truncate_middle(s: &str, max_length: usize) -> String {
+    let chars: Vec<char> = s.chars().collect();
+
+    if chars.len() <= max_length {
+        return s.to_string();
+    }
+
+    let tail_count = max_length / 2;
+    let head_count = max_length - tail_count - 1;
+
+    let head: String = chars[0..head_count].iter().collect();
+    let tail: String = chars[chars.len() - tail_count..].iter().collect();
+
+    vec![head, tail].join("…")
 }

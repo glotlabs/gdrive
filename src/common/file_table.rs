@@ -8,13 +8,21 @@ pub struct FileTable<H: Display, V: Display, const COLUMNS: usize> {
     pub values: Vec<[V; COLUMNS]>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct DisplayConfig {
+    skip_header: bool,
+}
+
 pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(
     writer: W,
     table: FileTable<H, V, COLUMNS>,
+    config: &DisplayConfig,
 ) -> Result<(), io::Error> {
     let mut tw = TabWriter::new(writer).padding(3);
 
-    writeln!(&mut tw, "{}", to_row(table.header))?;
+    if !config.skip_header {
+        writeln!(&mut tw, "{}", to_row(table.header))?;
+    }
 
     for value in table.values {
         writeln!(&mut tw, "{}", to_row(value))?;
