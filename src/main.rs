@@ -108,6 +108,16 @@ enum FileCommand {
         #[arg(long)]
         overwrite: bool,
     },
+
+    /// Download files
+    Delete {
+        /// File id
+        file_id: String,
+
+        /// Delete directory and all it's content
+        #[arg(long)]
+        recursive: bool,
+    },
 }
 
 #[tokio::main]
@@ -202,6 +212,16 @@ async fn main() {
                         file_id,
                         existing_file_action,
                         download_directories: false,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Delete { file_id, recursive } => {
+                    // fmt
+                    files::delete(files::delete::Config {
+                        file_id,
+                        delete_directories: recursive,
                     })
                     .await
                     .unwrap_or_else(handle_error)
