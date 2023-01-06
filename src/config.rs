@@ -92,7 +92,16 @@ impl Config {
 
     pub fn save_secret(&self, secret: &Secret) -> Result<(), Error> {
         let content = serde_json::to_string_pretty(&secret).map_err(Error::SerializeSecret)?;
-        fs::write(&self.secret_path(), content).map_err(Error::WriteSecret)?;
+        let path = self.secret_path();
+        fs::write(&path, content).map_err(Error::WriteSecret)?;
+
+        if let Err(err) = set_file_permissions(&path) {
+            eprintln!(
+                "Warning: Failed to set file permissions on secrets file: {}",
+                err
+            );
+        }
+
         Ok(())
     }
 
@@ -176,6 +185,16 @@ impl Account {
 pub struct Secret {
     pub client_id: String,
     pub client_secret: String,
+}
+
+pub fn set_file_permissions(path: &PathBuf) -> Result<(), io::Error> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
+    }
+
+    Ok(())
 }
 
 #[derive(Debug)]
