@@ -61,7 +61,13 @@ enum AccountCommand {
 
     /// Remove an account
     Remove {
-        /// account name
+        /// Account name
+        account_name: String,
+    },
+
+    /// Export account, this will create a zip file of the account which can be imported
+    Export {
+        /// Account name
         account_name: String,
     },
 }
@@ -156,6 +162,11 @@ async fn main() {
                 AccountCommand::Remove { account_name } => {
                     // fmt
                     account::remove(&account_name).unwrap_or_else(handle_error)
+                }
+
+                AccountCommand::Export { account_name } => {
+                    // fmt
+                    account::export(&account_name).unwrap_or_else(handle_error)
                 }
             }
         }
