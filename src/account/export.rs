@@ -1,4 +1,4 @@
-use crate::common::tar_helper;
+use crate::common::account_archive;
 use crate::config;
 use crate::config::set_file_permissions;
 use crate::config::Config;
@@ -16,7 +16,7 @@ pub fn export(account_name: &str) -> Result<(), Error> {
 
     let archive_name = format!("gdrive_export-{}.tar", normalize_name(account_name));
     let archive_path = PathBuf::from(&archive_name);
-    tar_helper::archive_dir(&account_path, &archive_path).map_err(Error::CreateArchive)?;
+    account_archive::create(&account_path, &archive_path).map_err(Error::CreateArchive)?;
 
     if let Err(err) = set_file_permissions(&archive_path) {
         eprintln!("Warning: Failed to set permissions on archive: {}", err);
@@ -31,7 +31,7 @@ pub fn export(account_name: &str) -> Result<(), Error> {
 pub enum Error {
     Config(config::Error),
     AccountNotFound(String),
-    CreateArchive(tar_helper::Error),
+    CreateArchive(account_archive::Error),
 }
 
 impl error::Error for Error {}

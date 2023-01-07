@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io;
 use std::path::PathBuf;
 
-pub fn archive_dir(src_path: &PathBuf, archive_path: &PathBuf) -> Result<(), Error> {
+pub fn create(src_path: &PathBuf, archive_path: &PathBuf) -> Result<(), Error> {
     err_if_not_exists(src_path)?;
     err_if_not_dir(src_path)?;
     err_if_exists(archive_path)?;
@@ -30,6 +30,41 @@ pub fn archive_dir(src_path: &PathBuf, archive_path: &PathBuf) -> Result<(), Err
     Ok(())
 }
 
+pub fn unpack(archive_path: &PathBuf, dst_path: &PathBuf) -> Result<(), Error> {
+    err_if_not_exists(archive_path)?;
+    err_if_not_exists(dst_path)?;
+
+    let archive_file = File::open(archive_path).map_err(Error::OpenFile)?;
+    let mut archive = tar::Archive::new(archive_file);
+    archive.unpack(dst_path).map_err(Error::Unpack)
+}
+
+pub fn get_account_name(archive_path: &PathBuf) -> Result<String, Error> {
+    let archive_file = File::open(archive_path).map_err(Error::OpenFile)?;
+    let mut archive = tar::Archive::new(archive_file);
+    let entries = archive.entries().map_err(Error::ReadEntries)?;
+
+    let dir_names: Vec<String> = entries
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path().ok()?;
+
+            if entry.header().entry_type() == tar::EntryType::Directory {
+                let file_name = path.file_name()?;
+                Some(file_name.to_string_lossy().to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    match &dir_names[..] {
+        [name] => Ok(name.to_string()),
+        [] => Err(Error::NoDirectories),
+        _ => Err(Error::MultipleDirectories),
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     CreateFile(io::Error),
@@ -38,6 +73,11 @@ pub enum Error {
     PathAlreadyExists(PathBuf),
     AppendDir(PathBuf, io::Error),
     FinishArchive(PathBuf, io::Error),
+    OpenFile(io::Error),
+    ReadEntries(io::Error),
+    NoDirectories,
+    MultipleDirectories,
+    Unpack(io::Error),
 }
 
 impl error::Error for Error {}
@@ -73,6 +113,31 @@ impl Display for Error {
             Error::FinishArchive(path, err) => {
                 // fmt
                 write!(f, "Failed to create archive '{}': {}", path.display(), err)
+            }
+
+            Error::OpenFile(err) => {
+                // fmt
+                write!(f, "Failed to open archive: {}", err)
+            }
+
+            Error::ReadEntries(err) => {
+                // fmt
+                write!(f, "Failed to read archive entries: {}", err)
+            }
+
+            Error::NoDirectories => {
+                // fmt
+                write!(f, "Archive contains no directories")
+            }
+
+            Error::MultipleDirectories => {
+                // fmt
+                write!(f, "Archive contains multiple directories")
+            }
+
+            Error::Unpack(err) => {
+                // fmt
+                write!(f, "Failed to unpack archive: {}", err)
             }
         }
     }

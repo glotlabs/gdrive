@@ -70,6 +70,12 @@ enum AccountCommand {
         /// Account name
         account_name: String,
     },
+
+    /// Import account that was created with the export command
+    Import {
+        /// Path to archive
+        file_path: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -167,6 +173,14 @@ async fn main() {
                 AccountCommand::Export { account_name } => {
                     // fmt
                     account::export(&account_name).unwrap_or_else(handle_error)
+                }
+
+                AccountCommand::Import { file_path } => {
+                    // fmt
+                    account::import(account::import::Config {
+                        archive_path: file_path,
+                    })
+                    .unwrap_or_else(handle_error)
                 }
             }
         }

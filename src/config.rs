@@ -52,6 +52,13 @@ impl Config {
         Ok(config)
     }
 
+    pub fn load_account(account_name: &str) -> Result<Config, Error> {
+        let base_path = Config::default_base_path()?;
+        let account = Account::new(account_name);
+        let config = Config { base_path, account };
+        Ok(config)
+    }
+
     pub fn init_account(account_name: &str) -> Result<Config, Error> {
         let base_path = Config::default_base_path()?;
         let account = Account::new(account_name);
@@ -148,7 +155,7 @@ impl Config {
         self.account_base_path().join(TOKENS_CONFIG_NAME)
     }
 
-    fn default_base_path() -> Result<PathBuf, Error> {
+    pub fn default_base_path() -> Result<PathBuf, Error> {
         let home_path = home::home_dir().ok_or(Error::HomeDirNotFound)?;
         let base_path = home_path
             .join(SYSTEM_CONFIG_DIR_NAME)
