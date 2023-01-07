@@ -4,13 +4,18 @@ use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-pub fn switch(account_name: &str) -> Result<(), Error> {
-    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
-    err_if_account_not_found(&accounts, account_name)?;
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub account_name: String,
+}
 
-    let app_cfg = AppConfig::init_account(account_name).map_err(Error::AppConfig)?;
+pub fn switch(config: Config) -> Result<(), Error> {
+    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
+    err_if_account_not_found(&accounts, &config.account_name)?;
+
+    let app_cfg = AppConfig::init_account(&config.account_name).map_err(Error::AppConfig)?;
     app_config::switch_account(&app_cfg).map_err(Error::AppConfig)?;
-    println!("Switched to account '{}'", account_name);
+    println!("Switched to account '{}'", &config.account_name);
 
     Ok(())
 }

@@ -162,17 +162,20 @@ async fn main() {
 
                 AccountCommand::Switch { account_name } => {
                     // fmt
-                    account::switch(&account_name).unwrap_or_else(handle_error)
+                    account::switch(account::switch::Config { account_name })
+                        .unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Remove { account_name } => {
                     // fmt
-                    account::remove(&account_name).unwrap_or_else(handle_error)
+                    account::remove(account::remove::Config { account_name })
+                        .unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Export { account_name } => {
                     // fmt
-                    account::export(&account_name).unwrap_or_else(handle_error)
+                    account::export(account::export::Config { account_name })
+                        .unwrap_or_else(handle_error)
                 }
 
                 AccountCommand::Import { file_path } => {
