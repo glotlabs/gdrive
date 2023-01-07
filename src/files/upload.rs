@@ -45,15 +45,17 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         .map(|s| s.to_string_lossy().to_string())
         .ok_or(Error::InvalidFilePath(config.file_path.clone()))?;
 
+    let file = fs::File::open(&config.file_path)
+        .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
+    let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
+    let reader = std::io::BufReader::new(file);
+
     let file_info = FileInfo {
         name: file_name,
         mime_type,
         parents: config.parents,
+        size: file_size,
     };
-
-    let file = fs::File::open(&config.file_path)
-        .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
-    let reader = std::io::BufReader::new(file);
 
     println!("Uploading {}", config.file_path.display());
 
@@ -73,6 +75,7 @@ pub struct FileInfo {
     pub name: String,
     pub mime_type: mime::Mime,
     pub parents: Option<Vec<String>>,
+    pub size: u64,
 }
 
 pub async fn upload_file<'a, RS>(
@@ -90,15 +93,19 @@ where
         ..google_drive3::api::File::default()
     };
 
-    let (_body, file) = hub
+    let req = hub
         .files()
         .create(dst_file)
         .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink")
         .add_scope(google_drive3::api::Scope::Full)
         .delegate(delegate)
-        .supports_all_drives(true)
-        .upload_resumable(src_file, file_info.mime_type)
-        .await?;
+        .supports_all_drives(true);
+
+    let (_, file) = if file_info.size > 0 {
+        req.upload_resumable(src_file, file_info.mime_type).await?
+    } else {
+        req.upload(src_file, file_info.mime_type).await?
+    };
 
     Ok(file)
 }
