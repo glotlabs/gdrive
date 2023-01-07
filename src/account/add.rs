@@ -45,8 +45,16 @@ pub async fn add() -> Result<(), Error> {
 
     let app_cfg =
         app_config::add_account(&email, &secret, &tokens_path).map_err(Error::AppConfig)?;
-    app_config::switch_account(&app_cfg).map_err(Error::AppConfig)?;
 
+    println!();
+    println!(
+        "Saved account credentials in {}",
+        app_cfg.base_path.display()
+    );
+    println!("Keep them safe! If someone gets access to them, they will also be able to access your Google Drive.");
+
+    app_config::switch_account(&app_cfg).map_err(Error::AppConfig)?;
+    println!();
     println!("Logged in as {}", app_cfg.account.name);
 
     Ok(())
