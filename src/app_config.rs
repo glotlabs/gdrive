@@ -14,7 +14,7 @@ const SECRET_CONFIG_NAME: &str = "secret.json";
 const TOKENS_CONFIG_NAME: &str = "tokens.json";
 
 #[derive(Debug, Clone)]
-pub struct Config {
+pub struct AppConfig {
     pub base_path: PathBuf,
     pub account: Account,
 }
@@ -23,20 +23,20 @@ pub fn add_account(
     account_name: &str,
     secret: &Secret,
     tokens_path: &PathBuf,
-) -> Result<Config, Error> {
-    let config = Config::init_account(account_name)?;
+) -> Result<AppConfig, Error> {
+    let config = AppConfig::init_account(account_name)?;
     config.save_secret(secret)?;
     fs::copy(tokens_path, config.tokens_path()).map_err(Error::CopyTokens)?;
     Ok(config)
 }
 
-pub fn switch_account(config: &Config) -> Result<(), Error> {
+pub fn switch_account(config: &AppConfig) -> Result<(), Error> {
     config.save_account_config()
 }
 
-impl Config {
+impl AppConfig {
     pub fn has_current_account() -> bool {
-        if let Ok(base_path) = Config::default_base_path() {
+        if let Ok(base_path) = AppConfig::default_base_path() {
             let account_config_path = base_path.join(ACCOUNT_CONFIG_NAME);
             account_config_path.exists()
         } else {
@@ -44,26 +44,26 @@ impl Config {
         }
     }
 
-    pub fn load_current_account() -> Result<Config, Error> {
-        let base_path = Config::default_base_path()?;
-        let account_config = Config::load_account_config()?;
+    pub fn load_current_account() -> Result<AppConfig, Error> {
+        let base_path = AppConfig::default_base_path()?;
+        let account_config = AppConfig::load_account_config()?;
         let account = Account::new(&account_config.current);
-        let config = Config { base_path, account };
+        let config = AppConfig { base_path, account };
         Ok(config)
     }
 
-    pub fn load_account(account_name: &str) -> Result<Config, Error> {
-        let base_path = Config::default_base_path()?;
+    pub fn load_account(account_name: &str) -> Result<AppConfig, Error> {
+        let base_path = AppConfig::default_base_path()?;
         let account = Account::new(account_name);
-        let config = Config { base_path, account };
+        let config = AppConfig { base_path, account };
         Ok(config)
     }
 
-    pub fn init_account(account_name: &str) -> Result<Config, Error> {
-        let base_path = Config::default_base_path()?;
+    pub fn init_account(account_name: &str) -> Result<AppConfig, Error> {
+        let base_path = AppConfig::default_base_path()?;
         let account = Account::new(account_name);
 
-        let config = Config { base_path, account };
+        let config = AppConfig { base_path, account };
         config.create_account_dir()?;
 
         Ok(config)
@@ -73,7 +73,7 @@ impl Config {
         let path = self.account_base_path();
         fs::remove_dir_all(&path).map_err(Error::RemoveAccountDir)?;
 
-        let account_config = Config::load_account_config()?;
+        let account_config = AppConfig::load_account_config()?;
         if self.account.name == account_config.current {
             fs::remove_file(self.account_config_path()).map_err(Error::RemoveAccountConfig)?;
         }
@@ -82,7 +82,7 @@ impl Config {
     }
 
     pub fn list_accounts() -> Result<Vec<String>, Error> {
-        let base_path = Config::default_base_path()?;
+        let base_path = AppConfig::default_base_path()?;
         let entries = fs::read_dir(base_path).map_err(Error::ListFiles)?;
 
         let mut accounts: Vec<String> = entries
@@ -118,7 +118,7 @@ impl Config {
     }
 
     pub fn load_account_config() -> Result<AccountConfig, Error> {
-        let base_path = Config::default_base_path()?;
+        let base_path = AppConfig::default_base_path()?;
         let account_config_path = base_path.join(ACCOUNT_CONFIG_NAME);
         account_config_path
             .exists()

@@ -1,4 +1,4 @@
-use crate::config;
+use crate::app_config;
 use google_drive3::hyper;
 use google_drive3::hyper::client::HttpConnector;
 use google_drive3::hyper_rustls::HttpsConnector;
@@ -54,7 +54,10 @@ impl Deref for Auth {
 }
 
 impl Auth {
-    pub async fn new(config: &config::Secret, tokens_path: &PathBuf) -> Result<Auth, io::Error> {
+    pub async fn new(
+        config: &app_config::Secret,
+        tokens_path: &PathBuf,
+    ) -> Result<Auth, io::Error> {
         let secret = oauth2_secret(config);
         let delegate = Box::new(AuthDelegate);
 
@@ -71,7 +74,7 @@ impl Auth {
     }
 }
 
-fn oauth2_secret(config: &config::Secret) -> oauth2::ApplicationSecret {
+fn oauth2_secret(config: &app_config::Secret) -> oauth2::ApplicationSecret {
     oauth2::ApplicationSecret {
         client_id: config.client_id.clone(),
         client_secret: config.client_secret.clone(),

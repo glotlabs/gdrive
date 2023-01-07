@@ -1,5 +1,5 @@
-use crate::config;
-use crate::config::Config;
+use crate::app_config;
+use crate::app_config::AppConfig;
 use crate::hub::Auth;
 use crate::hub::Hub;
 use std::error;
@@ -9,9 +9,9 @@ use std::fmt::Formatter;
 use std::io;
 
 pub async fn get_hub() -> Result<Hub, Error> {
-    let config = Config::load_current_account().map_err(Error::Config)?;
-    let secret = config.load_secret().map_err(Error::Config)?;
-    let auth = Auth::new(&secret, &config.tokens_path())
+    let app_cfg = AppConfig::load_current_account().map_err(Error::AppConfig)?;
+    let secret = app_cfg.load_secret().map_err(Error::AppConfig)?;
+    let auth = Auth::new(&secret, &app_cfg.tokens_path())
         .await
         .map_err(Error::Auth)?;
 
@@ -22,7 +22,7 @@ pub async fn get_hub() -> Result<Hub, Error> {
 
 #[derive(Debug)]
 pub enum Error {
-    Config(config::Error),
+    AppConfig(app_config::Error),
     Auth(io::Error),
 }
 
@@ -31,7 +31,7 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Config(err) => write!(f, "Config error: {}", err),
+            Error::AppConfig(err) => write!(f, "{}", err),
             Error::Auth(err) => write!(f, "Auth error: {}", err),
         }
     }

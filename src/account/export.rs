@@ -1,18 +1,18 @@
+use crate::app_config;
+use crate::app_config::set_file_permissions;
+use crate::app_config::AppConfig;
 use crate::common::account_archive;
-use crate::config;
-use crate::config::set_file_permissions;
-use crate::config::Config;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::path::PathBuf;
 
 pub fn export(account_name: &str) -> Result<(), Error> {
-    let accounts = Config::list_accounts().map_err(Error::Config)?;
+    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
     err_if_account_not_found(&accounts, account_name)?;
 
-    let config = Config::init_account(account_name).map_err(Error::Config)?;
-    let account_path = config.account_base_path();
+    let app_cfg = AppConfig::init_account(account_name).map_err(Error::AppConfig)?;
+    let account_path = app_cfg.account_base_path();
 
     let archive_name = format!("gdrive_export-{}.tar", normalize_name(account_name));
     let archive_path = PathBuf::from(&archive_name);
@@ -29,7 +29,7 @@ pub fn export(account_name: &str) -> Result<(), Error> {
 
 #[derive(Debug)]
 pub enum Error {
-    Config(config::Error),
+    AppConfig(app_config::Error),
     AccountNotFound(String),
     CreateArchive(account_archive::Error),
 }
@@ -39,7 +39,7 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Config(e) => write!(f, "{}", e),
+            Error::AppConfig(e) => write!(f, "{}", e),
             Error::AccountNotFound(name) => write!(f, "Account '{}' not found", name),
             Error::CreateArchive(e) => write!(f, "{}", e),
         }

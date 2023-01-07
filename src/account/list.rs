@@ -1,8 +1,8 @@
-use crate::config;
-use crate::config::Config;
+use crate::app_config;
+use crate::app_config::AppConfig;
 
-pub fn list() -> Result<(), config::Error> {
-    let accounts = Config::list_accounts()?;
+pub fn list() -> Result<(), app_config::Error> {
+    let accounts = AppConfig::list_accounts()?;
 
     if accounts.is_empty() {
         println!("No accounts found");

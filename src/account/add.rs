@@ -1,4 +1,4 @@
-use crate::config;
+use crate::app_config;
 use crate::hub;
 use std::error;
 use std::fmt::Display;
@@ -38,10 +38,11 @@ pub async fn add() -> Result<(), Error> {
         .and_then(|u| u.email_address)
         .unwrap_or_else(|| String::from("unknown"));
 
-    let config = config::add_account(&email, &secret, &tokens_path).map_err(Error::Config)?;
-    config::switch_account(&config).map_err(Error::Config)?;
+    let app_cfg =
+        app_config::add_account(&email, &secret, &tokens_path).map_err(Error::AppConfig)?;
+    app_config::switch_account(&app_cfg).map_err(Error::AppConfig)?;
 
-    println!("Logged in as {}", config.account.name);
+    println!("Logged in as {}", app_cfg.account.name);
 
     Ok(())
 }
@@ -51,7 +52,7 @@ pub enum Error {
     Prompt(io::Error),
     Tempdir(io::Error),
     Auth(io::Error),
-    Config(config::Error),
+    AppConfig(app_config::Error),
     AccessToken(google_drive3::oauth2::Error),
     About(google_drive3::Error),
 }
@@ -64,14 +65,14 @@ impl Display for Error {
             Error::Prompt(e) => write!(f, "Failed to get input from user: {}", e),
             Error::Tempdir(e) => write!(f, "Failed to create temporary directory: {}", e),
             Error::Auth(e) => write!(f, "Failed to authenticate: {}", e),
-            Error::Config(e) => write!(f, "{}", e),
+            Error::AppConfig(e) => write!(f, "{}", e),
             Error::AccessToken(e) => write!(f, "Failed to get access token: {}", e),
             Error::About(e) => write!(f, "Failed to get user info: {}", e),
         }
     }
 }
 
-fn secret_prompt() -> Result<config::Secret, io::Error> {
+fn secret_prompt() -> Result<app_config::Secret, io::Error> {
     println!("To add an account you need a Google Client ID and Client Secret.");
     println!("Instructions for how to create credentials can be found here: https://github.com/glotlabs/gdrive/blob/main/docs/create_google_api_credentials.md");
     println!();
@@ -79,7 +80,7 @@ fn secret_prompt() -> Result<config::Secret, io::Error> {
     let client_id = prompt_input("Client ID")?;
     let client_secret = prompt_input("Client secret")?;
 
-    Ok(config::Secret {
+    Ok(app_config::Secret {
         client_id,
         client_secret,
     })

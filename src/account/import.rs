@@ -1,5 +1,6 @@
+use crate::app_config;
+use crate::app_config::AppConfig;
 use crate::common::account_archive;
-use crate::config;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -15,18 +16,18 @@ pub fn import(config: Config) -> Result<(), Error> {
     let account_name =
         account_archive::get_account_name(&config.archive_path).map_err(Error::ReadAccountName)?;
 
-    let accounts = config::Config::list_accounts().map_err(Error::Config)?;
+    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
     err_if_account_exists(&accounts, &account_name)?;
 
-    let config_base_path = config::Config::default_base_path().map_err(Error::Config)?;
+    let config_base_path = AppConfig::default_base_path().map_err(Error::AppConfig)?;
     account_archive::unpack(&config.archive_path, &config_base_path).map_err(Error::Unpack)?;
 
     println!("Imported account '{}'", account_name);
 
-    if !config::Config::has_current_account() {
-        let cfg = config::Config::load_account(&account_name).map_err(Error::Config)?;
+    if !AppConfig::has_current_account() {
+        let app_cfg = AppConfig::load_account(&account_name).map_err(Error::AppConfig)?;
         println!("Switched to account '{}'", account_name);
-        config::switch_account(&cfg).map_err(Error::Config)?;
+        app_config::switch_account(&app_cfg).map_err(Error::AppConfig)?;
     }
 
     Ok(())
@@ -34,7 +35,7 @@ pub fn import(config: Config) -> Result<(), Error> {
 
 #[derive(Debug)]
 pub enum Error {
-    Config(config::Error),
+    AppConfig(app_config::Error),
     AccountExists(String),
     ReadAccountName(account_archive::Error),
     Unpack(account_archive::Error),
@@ -45,7 +46,7 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Config(e) => write!(f, "{}", e),
+            Error::AppConfig(e) => write!(f, "{}", e),
             Error::AccountExists(name) => write!(f, "Account '{}' already exists", name),
             Error::ReadAccountName(e) => write!(f, "{}", e),
             Error::Unpack(e) => write!(f, "{}", e),

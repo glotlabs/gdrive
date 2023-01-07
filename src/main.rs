@@ -1,7 +1,7 @@
 pub mod about;
 pub mod account;
+pub mod app_config;
 pub mod common;
-pub mod config;
 pub mod files;
 pub mod hub;
 pub mod md5_reader;
