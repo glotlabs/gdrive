@@ -105,6 +105,7 @@ pub enum ListQuery {
         folder_id: String,
     },
     Custom(String),
+    None,
 }
 
 impl FromStr for ListQuery {
@@ -112,7 +113,7 @@ impl FromStr for ListQuery {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            Err("Query can't be an empty string".to_string())
+            Ok(ListQuery::None)
         } else {
             Ok(ListQuery::Custom(s.to_string()))
         }
@@ -132,6 +133,10 @@ impl Display for ListQuery {
 
             ListQuery::Custom(query) => {
                 write!(f, "{}", query)
+            }
+
+            ListQuery::None => {
+                write!(f, "")
             }
         }
     }
