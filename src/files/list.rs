@@ -128,7 +128,7 @@ impl Display for ListQuery {
             }
 
             ListQuery::FilesInFolder { folder_id } => {
-                write!(f, "'{}' in parents", folder_id)
+                write!(f, "'{}' in parents and trashed = false", folder_id)
             }
 
             ListQuery::Custom(query) => {
