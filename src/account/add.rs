@@ -7,6 +7,11 @@ use std::io;
 use std::io::Write;
 
 pub async fn add() -> Result<(), Error> {
+    println!("To add an account you need a Google Client ID and Client Secret.");
+    println!("Instructions for how to create credentials can be found here: https://github.com/glotlabs/gdrive/blob/main/docs/create_google_api_credentials.md");
+    println!("Note that if you are using gdrive on a remote server you should read this first: https://github.com/glotlabs/gdrive#using-gdrive-on-a-remote-server");
+    println!();
+
     let secret = secret_prompt().map_err(Error::Prompt)?;
 
     let tmp_dir = tempfile::tempdir().map_err(Error::Tempdir)?;
@@ -73,10 +78,6 @@ impl Display for Error {
 }
 
 fn secret_prompt() -> Result<app_config::Secret, io::Error> {
-    println!("To add an account you need a Google Client ID and Client Secret.");
-    println!("Instructions for how to create credentials can be found here: https://github.com/glotlabs/gdrive/blob/main/docs/create_google_api_credentials.md");
-    println!();
-
     let client_id = prompt_input("Client ID")?;
     let client_secret = prompt_input("Client secret")?;
 
