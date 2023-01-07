@@ -2,6 +2,8 @@ use crate::common::delegate::Backoff;
 use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
+use crate::common::file_info;
+use crate::common::file_info::FileInfo;
 use crate::common::hub_helper;
 use crate::files;
 use crate::files::info::DisplayConfig;
@@ -33,29 +35,20 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         }),
     });
 
-    let mime_type = config.mime_type.unwrap_or_else(|| {
-        mime_guess::from_path(&config.file_path)
-            .first()
-            .unwrap_or(mime::APPLICATION_OCTET_STREAM)
-    });
-
-    let file_name = config
-        .file_path
-        .file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .ok_or(Error::InvalidFilePath(config.file_path.clone()))?;
-
     let file = fs::File::open(&config.file_path)
         .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
-    let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
-    let reader = std::io::BufReader::new(file);
 
-    let file_info = FileInfo {
-        name: file_name,
-        mime_type,
-        parents: config.parents,
-        size: file_size,
-    };
+    let file_info = FileInfo::from_file(
+        &file,
+        &file_info::Config {
+            file_path: config.file_path.clone(),
+            mime_type: config.mime_type,
+            parents: config.parents,
+        },
+    )
+    .map_err(Error::FileInfo)?;
+
+    let reader = std::io::BufReader::new(file);
 
     println!("Uploading {}", config.file_path.display());
 
@@ -69,13 +62,6 @@ pub async fn upload(config: Config) -> Result<(), Error> {
     files::info::print_fields(&fields);
 
     Ok(())
-}
-
-pub struct FileInfo {
-    pub name: String,
-    pub mime_type: mime::Mime,
-    pub parents: Option<Vec<String>>,
-    pub size: u64,
 }
 
 pub async fn upload_file<'a, RS>(
@@ -113,7 +99,7 @@ where
 #[derive(Debug)]
 pub enum Error {
     Hub(hub_helper::Error),
-    InvalidFilePath(PathBuf),
+    FileInfo(file_info::Error),
     OpenFile(PathBuf, io::Error),
     Upload(google_drive3::Error),
 }
@@ -124,7 +110,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Hub(err) => write!(f, "{}", err),
-            Error::InvalidFilePath(path) => write!(f, "Invalid file path: {}", path.display()),
+            Error::FileInfo(err) => write!(f, "{}", err),
             Error::OpenFile(path, err) => {
                 write!(f, "Failed to open file '{}': {}", path.display(), err)
             }
