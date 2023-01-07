@@ -95,6 +95,14 @@ enum FileCommand {
         /// Max files to list
         #[arg(long, default_value_t = 30)]
         max: usize,
+
+        /// Query. See https://developers.google.com/drive/search-parameters
+        #[arg(long, default_value_t = ListQuery::default())]
+        query: ListQuery,
+
+        /// Order by. See https://developers.google.com/drive/api/v3/reference/files/list
+        #[arg(long, default_value_t = ListSortOrder::default())]
+        order_by: ListSortOrder,
     },
 
     /// Upload files
@@ -203,11 +211,15 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::List { max } => {
+                FileCommand::List {
+                    max,
+                    query,
+                    order_by,
+                } => {
                     // fmt
                     files::list(files::list::Config {
-                        query: ListQuery::default(),
-                        order_by: ListSortOrder::default(),
+                        query,
+                        order_by,
                         max_files: max,
                     })
                     .await
