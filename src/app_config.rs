@@ -34,6 +34,23 @@ pub fn switch_account(config: &AppConfig) -> Result<(), Error> {
     config.save_account_config()
 }
 
+pub fn list_accounts() -> Result<Vec<String>, Error> {
+    let base_path = AppConfig::default_base_path()?;
+    fs::create_dir_all(&base_path).map_err(|err| Error::CreateBaseDir(base_path.clone(), err))?;
+    let entries = fs::read_dir(base_path).map_err(Error::ListFiles)?;
+
+    let mut accounts: Vec<String> = entries
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path().is_dir())
+        .filter(|entry| entry.path().join(TOKENS_CONFIG_NAME).exists())
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .collect();
+
+    accounts.sort();
+
+    Ok(accounts)
+}
+
 impl AppConfig {
     pub fn has_current_account() -> bool {
         if let Ok(base_path) = AppConfig::default_base_path() {
@@ -79,22 +96,6 @@ impl AppConfig {
         }
 
         Ok(())
-    }
-
-    pub fn list_accounts() -> Result<Vec<String>, Error> {
-        let base_path = AppConfig::default_base_path()?;
-        let entries = fs::read_dir(base_path).map_err(Error::ListFiles)?;
-
-        let mut accounts: Vec<String> = entries
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.path().is_dir())
-            .filter(|entry| entry.path().join(TOKENS_CONFIG_NAME).exists())
-            .map(|entry| entry.file_name().to_string_lossy().to_string())
-            .collect();
-
-        accounts.sort();
-
-        Ok(accounts)
     }
 
     pub fn save_secret(&self, secret: &Secret) -> Result<(), Error> {
@@ -222,6 +223,7 @@ pub enum Error {
     ListFiles(io::Error),
     RemoveAccountDir(io::Error),
     RemoveAccountConfig(io::Error),
+    CreateBaseDir(PathBuf, io::Error),
 }
 
 impl error::Error for Error {}
@@ -309,6 +311,16 @@ impl Display for Error {
             Error::RemoveAccountConfig(err) => {
                 // fmt
                 write!(f, "Failed to remove account config: {}", err)
+            }
+
+            Error::CreateBaseDir(path, err) => {
+                // fmt
+                write!(
+                    f,
+                    "Failed to create directory '{}': {}",
+                    path.display(),
+                    err
+                )
             }
         }
     }

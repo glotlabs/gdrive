@@ -10,7 +10,7 @@ pub struct Config {
 }
 
 pub fn switch(config: Config) -> Result<(), Error> {
-    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
+    let accounts = app_config::list_accounts().map_err(Error::AppConfig)?;
     err_if_account_not_found(&accounts, &config.account_name)?;
 
     let app_cfg = AppConfig::init_account(&config.account_name).map_err(Error::AppConfig)?;

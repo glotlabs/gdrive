@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 pub fn current() -> Result<(), Error> {
-    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
+    let accounts = app_config::list_accounts().map_err(Error::AppConfig)?;
     err_if_no_accounts(&accounts)?;
 
     let app_cfg = AppConfig::load_current_account().map_err(Error::AppConfig)?;

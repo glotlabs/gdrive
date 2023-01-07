@@ -1,11 +1,10 @@
 use crate::app_config;
-use crate::app_config::AppConfig;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
 pub fn list() -> Result<(), Error> {
-    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
+    let accounts = app_config::list_accounts().map_err(Error::AppConfig)?;
     err_if_no_accounts(&accounts)?;
 
     for account in accounts {

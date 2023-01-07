@@ -11,12 +11,11 @@ pub struct Config {
     pub archive_path: PathBuf,
 }
 
-// TODO: Ensure config dir exists (import might be their first command)
 pub fn import(config: Config) -> Result<(), Error> {
     let account_name =
         account_archive::get_account_name(&config.archive_path).map_err(Error::ReadAccountName)?;
 
-    let accounts = AppConfig::list_accounts().map_err(Error::AppConfig)?;
+    let accounts = app_config::list_accounts().map_err(Error::AppConfig)?;
     err_if_account_exists(&accounts, &account_name)?;
 
     let config_base_path = AppConfig::default_base_path().map_err(Error::AppConfig)?;
