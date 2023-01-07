@@ -44,9 +44,11 @@ you will help support:
 ### Using gdrive on a remote server
 
 Part of the flow for adding an account to gdrive requires your web browser to access `localhost:8085` on the machine that runs gdrive.
-This makes it tricky to set up accounts on remote servers. The suggested workaround is to add the account to you local machine first
-and then copy the configuration to the remote server. A `account export` and `account import` function will be added later
-to simplify this process.
+This makes it tricky to set up accounts on remote servers. The suggested workaround is to add the account on your local machine and import it on the remote server:
+1. [local] Run `gdrive account add` 
+2. [local] Run `gdrive account export <ACCOUNT_NAME>`
+3. [local] Copy the exported archive to the remote server
+4. [remote] Run `gdrive account import <ARCHIVE_PATH>`
 
 ### Credentials
 Gdrive saves your account credentials and tokens under `$HOME/.config/gdrive3/`.
