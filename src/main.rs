@@ -129,7 +129,7 @@ enum FileCommand {
         overwrite: bool,
     },
 
-    /// Download files
+    /// Delete files
     Delete {
         /// File id
         file_id: String,
