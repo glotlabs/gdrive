@@ -424,7 +424,7 @@ dependencies = [
 [[package]]
 name = "google-apis-common"
 version = "5.0.2"
-source = "git+https://github.com/Byron/google-apis-rs#0548e4dc2135422d95689448bb58537cc3799801"
+source = "git+https://github.com/prasmussen/google-apis-rs?branch=resumable-fix#1f75444516a3bbba3441ee6ff65d6aa0f2d2f1af"
 dependencies = [
  "base64",
  "chrono",
@@ -444,7 +444,7 @@ dependencies = [
 [[package]]
 name = "google-drive3"
 version = "5.0.2-beta-1+20220225"
-source = "git+https://github.com/Byron/google-apis-rs#0548e4dc2135422d95689448bb58537cc3799801"
+source = "git+https://github.com/prasmussen/google-apis-rs?branch=resumable-fix#1f75444516a3bbba3441ee6ff65d6aa0f2d2f1af"
 dependencies = [
  "anyhow",
  "google-apis-common",

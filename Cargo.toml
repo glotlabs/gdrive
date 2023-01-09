@@ -10,7 +10,7 @@ bytes = "1.3.0"
 clap = { version = "4.0.29", features = ["derive"] }
 exponential-backoff = "1.1.0"
 futures = "0.3.25"
-google-drive3 = { git = "https://github.com/Byron/google-apis-rs" }
+google-drive3 = { git = "https://github.com/prasmussen/google-apis-rs", branch = "resumable-fix" }
 home = "0.5.4"
 human_bytes = { version = "0.4.1", default-features = false }
 hyper = { version = "0.14.23", features = ["stream"] }
