@@ -59,38 +59,6 @@ fn should_retry(status: http::StatusCode) -> bool {
     status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS
 }
 
-pub struct RetryDelegateConfig {
-    pub backoff: Backoff,
-}
-
-pub struct RetryDelegate {
-    config: RetryDelegateConfig,
-}
-
-impl RetryDelegate {
-    pub fn new(config: RetryDelegateConfig) -> RetryDelegate {
-        RetryDelegate { config }
-    }
-}
-
-impl google_drive3::client::Delegate for RetryDelegate {
-    fn http_error(&mut self, _err: &hyper::Error) -> google_drive3::client::Retry {
-        self.config.backoff.retry()
-    }
-
-    fn http_failure(
-        &mut self,
-        res: &http::response::Response<hyper::body::Body>,
-        _err: Option<serde_json::Value>,
-    ) -> google_drive3::client::Retry {
-        if should_retry(res.status()) {
-            self.config.backoff.retry()
-        } else {
-            self.config.backoff.abort()
-        }
-    }
-}
-
 pub struct BackoffConfig {
     pub max_retries: u32,
     pub min_sleep: Duration,
