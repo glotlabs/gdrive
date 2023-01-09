@@ -105,7 +105,7 @@ enum FileCommand {
         order_by: ListSortOrder,
     },
 
-    /// Upload files
+    /// Upload file
     Upload {
         /// Path of file to upload
         file_path: PathBuf,
@@ -119,7 +119,7 @@ enum FileCommand {
         parent: Option<Vec<String>>,
     },
 
-    /// Download files
+    /// Download file
     Download {
         /// File id
         file_id: String,
@@ -129,7 +129,20 @@ enum FileCommand {
         overwrite: bool,
     },
 
-    /// Delete files
+    /// Update file. This will create a new version of the file. The older versions will typically be kept for 30 days.
+    Update {
+        /// File id of the file you want ot update
+        file_id: String,
+
+        /// Path of file to upload
+        file_path: PathBuf,
+
+        /// Force mime type [default: auto-detect]
+        #[arg(long, value_name = "MIME_TYPE")]
+        mime: Option<Mime>,
+    },
+
+    /// Delete file
     Delete {
         /// File id
         file_id: String,
@@ -252,6 +265,21 @@ async fn main() {
                         file_id,
                         existing_file_action,
                         download_directories: false,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Update {
+                    file_id,
+                    file_path,
+                    mime,
+                } => {
+                    // fmt
+                    files::update(files::update::Config {
+                        file_id,
+                        file_path,
+                        mime_type: mime,
                     })
                     .await
                     .unwrap_or_else(handle_error)
