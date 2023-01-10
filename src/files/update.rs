@@ -36,7 +36,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
         backoff: Backoff::new(BackoffConfig {
             max_retries: 20,
             min_sleep: Duration::from_secs(1),
-            max_sleep: Duration::from_secs(30),
+            max_sleep: Duration::from_secs(60),
         }),
         print_chunk_errors: config.print_chunk_errors,
         print_chunk_info: config.print_chunk_info,
