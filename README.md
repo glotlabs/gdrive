@@ -53,3 +53,10 @@ This makes it tricky to set up accounts on remote servers. The suggested workaro
 ### Credentials
 Gdrive saves your account credentials and tokens under `$HOME/.config/gdrive3/`.
 You don't usually need to use these files directly, but if someone gets access to them, they will also be able to access your Google Drive. Keep them safe.
+
+### Gdrive on virtual machines in the cloud
+There are some issues communicating with the Drive API from certain cloud providers.
+For example on an AWS instance the api returns a lot of `429 Too Many Requests` / `503 Service Unavailable` / `502 Bad Gateway` errors while uploading.
+While the same file uploads without any errors from a Linode instance.
+Gdrive has retry logic built in for these errors, but it can slow down the upload significantly.
+To check if you are affected by these errors you can run the `upload` command with these flags: `--print-chunk-errors` `--print-chunk-info`.
