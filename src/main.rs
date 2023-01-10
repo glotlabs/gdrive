@@ -106,6 +106,16 @@ enum FileCommand {
         order_by: ListSortOrder,
     },
 
+    /// Download file
+    Download {
+        /// File id
+        file_id: String,
+
+        /// Overwrite existing files
+        #[arg(long)]
+        overwrite: bool,
+    },
+
     /// Upload file
     Upload {
         /// Path of file to upload
@@ -122,16 +132,14 @@ enum FileCommand {
         /// Set chunk size in MB, must be a power of two.
         #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
         chunk_size: ChunkSize,
-    },
 
-    /// Download file
-    Download {
-        /// File id
-        file_id: String,
+        /// Print errors occuring during chunk upload
+        #[arg(long, value_name = "", default_value_t = false)]
+        print_chunk_errors: bool,
 
-        /// Overwrite existing files
-        #[arg(long)]
-        overwrite: bool,
+        /// Print details about each chunk
+        #[arg(long, value_name = "", default_value_t = false)]
+        print_chunk_info: bool,
     },
 
     /// Update file. This will create a new version of the file. The older versions will typically be kept for 30 days.
@@ -149,6 +157,14 @@ enum FileCommand {
         /// Set chunk size in MB, must be a power of two.
         #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
         chunk_size: ChunkSize,
+
+        /// Print errors occuring during chunk upload
+        #[arg(long, value_name = "", default_value_t = false)]
+        print_chunk_errors: bool,
+
+        /// Print details about each chunk
+        #[arg(long, value_name = "", default_value_t = false)]
+        print_chunk_info: bool,
     },
 
     /// Delete file
@@ -248,23 +264,6 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Upload {
-                    file_path,
-                    mime,
-                    parent,
-                    chunk_size,
-                } => {
-                    // fmt
-                    files::upload(files::upload::Config {
-                        file_path,
-                        mime_type: mime,
-                        parents: parent,
-                        chunk_size,
-                    })
-                    .await
-                    .unwrap_or_else(handle_error)
-                }
-
                 FileCommand::Download { file_id, overwrite } => {
                     let existing_file_action = if overwrite {
                         ExistingFileAction::Overwrite
@@ -281,11 +280,34 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
+                FileCommand::Upload {
+                    file_path,
+                    mime,
+                    parent,
+                    chunk_size,
+                    print_chunk_errors,
+                    print_chunk_info,
+                } => {
+                    // fmt
+                    files::upload(files::upload::Config {
+                        file_path,
+                        mime_type: mime,
+                        parents: parent,
+                        chunk_size,
+                        print_chunk_errors,
+                        print_chunk_info,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
                 FileCommand::Update {
                     file_id,
                     file_path,
                     mime,
                     chunk_size,
+                    print_chunk_errors,
+                    print_chunk_info,
                 } => {
                     // fmt
                     files::update(files::update::Config {
@@ -293,6 +315,8 @@ async fn main() {
                         file_path,
                         mime_type: mime,
                         chunk_size,
+                        print_chunk_errors,
+                        print_chunk_info,
                     })
                     .await
                     .unwrap_or_else(handle_error)

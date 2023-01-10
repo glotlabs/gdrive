@@ -24,6 +24,8 @@ pub struct Config {
     pub file_path: PathBuf,
     pub mime_type: Option<Mime>,
     pub chunk_size: ChunkSize,
+    pub print_chunk_errors: bool,
+    pub print_chunk_info: bool,
 }
 
 pub async fn update(config: Config) -> Result<(), Error> {
@@ -36,6 +38,8 @@ pub async fn update(config: Config) -> Result<(), Error> {
             min_sleep: Duration::from_secs(1),
             max_sleep: Duration::from_secs(30),
         }),
+        print_chunk_errors: config.print_chunk_errors,
+        print_chunk_info: config.print_chunk_info,
     });
 
     let file = fs::File::open(&config.file_path)
