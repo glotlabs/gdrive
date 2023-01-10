@@ -1,3 +1,4 @@
+use crate::common::chunk_size::ChunkSize;
 use crate::common::delegate::Backoff;
 use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
@@ -21,15 +22,16 @@ pub struct Config {
     pub file_path: PathBuf,
     pub mime_type: Option<Mime>,
     pub parents: Option<Vec<String>>,
+    pub chunk_size: ChunkSize,
 }
 
 pub async fn upload(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
     let mut delegate = UploadDelegate::new(UploadDelegateConfig {
-        chunk_size: 1 << 23,
+        chunk_size: config.chunk_size.in_bytes(),
         backoff: Backoff::new(BackoffConfig {
-            max_retries: 20,
+            max_retries: 100000,
             min_sleep: Duration::from_secs(1),
             max_sleep: Duration::from_secs(30),
         }),

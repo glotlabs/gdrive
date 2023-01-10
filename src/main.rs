@@ -8,6 +8,7 @@ pub mod md5_writer;
 pub mod version;
 
 use clap::{Parser, Subcommand};
+use common::chunk_size::ChunkSize;
 use files::download::ExistingFileAction;
 use files::list::ListQuery;
 use files::list::ListSortOrder;
@@ -117,6 +118,10 @@ enum FileCommand {
         /// Upload to an existing folder, multiple parents can be specified
         #[arg(long, value_name = "ID")]
         parent: Option<Vec<String>>,
+
+        /// Set chunk size in MB, must be a power of two.
+        #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
+        chunk_size: ChunkSize,
     },
 
     /// Download file
@@ -140,6 +145,10 @@ enum FileCommand {
         /// Force mime type [default: auto-detect]
         #[arg(long, value_name = "MIME_TYPE")]
         mime: Option<Mime>,
+
+        /// Set chunk size in MB, must be a power of two.
+        #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
+        chunk_size: ChunkSize,
     },
 
     /// Delete file
@@ -243,12 +252,14 @@ async fn main() {
                     file_path,
                     mime,
                     parent,
+                    chunk_size,
                 } => {
                     // fmt
                     files::upload(files::upload::Config {
                         file_path,
                         mime_type: mime,
                         parents: parent,
+                        chunk_size,
                     })
                     .await
                     .unwrap_or_else(handle_error)
@@ -274,12 +285,14 @@ async fn main() {
                     file_id,
                     file_path,
                     mime,
+                    chunk_size,
                 } => {
                     // fmt
                     files::update(files::update::Config {
                         file_id,
                         file_path,
                         mime_type: mime,
+                        chunk_size,
                     })
                     .await
                     .unwrap_or_else(handle_error)
