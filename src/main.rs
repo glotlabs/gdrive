@@ -125,8 +125,8 @@ enum FileCommand {
         #[arg(long, value_name = "MIME_TYPE")]
         mime: Option<Mime>,
 
-        /// Upload to an existing folder, multiple parents can be specified
-        #[arg(long, value_name = "ID")]
+        /// Upload to an existing directory
+        #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
         /// Set chunk size in MB, must be a power of two.
@@ -175,6 +175,16 @@ enum FileCommand {
         /// Delete directory and all it's content
         #[arg(long)]
         recursive: bool,
+    },
+
+    /// Create directory
+    Mkdir {
+        /// Name
+        name: String,
+
+        /// Create in an existing directory
+        #[arg(long, value_name = "DIRECTORY_ID")]
+        parent: Option<Vec<String>>,
     },
 }
 
@@ -327,6 +337,16 @@ async fn main() {
                     files::delete(files::delete::Config {
                         file_id,
                         delete_directories: recursive,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Mkdir { name, parent } => {
+                    // fmt
+                    files::mkdir(files::mkdir::Config {
+                        name,
+                        parents: parent,
                     })
                     .await
                     .unwrap_or_else(handle_error)
