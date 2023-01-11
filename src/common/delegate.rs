@@ -3,23 +3,28 @@ use google_drive3::hyper::http;
 use human_bytes::human_bytes;
 use std::time::Duration;
 
+#[derive(Debug, Clone)]
 pub struct UploadDelegateConfig {
     pub chunk_size: u64,
-    pub backoff: Backoff,
+    pub backoff_config: BackoffConfig,
     pub print_chunk_errors: bool,
     pub print_chunk_info: bool,
 }
 
 pub struct UploadDelegate {
     config: UploadDelegateConfig,
+    backoff: Backoff,
     resumable_upload_url: Option<String>,
     previous_chunk: Option<google_drive3::client::ContentRange>,
 }
 
 impl UploadDelegate {
     pub fn new(config: UploadDelegateConfig) -> UploadDelegate {
+        let backoff_config = config.backoff_config.clone();
+
         UploadDelegate {
             config,
+            backoff: Backoff::new(backoff_config),
             resumable_upload_url: None,
             previous_chunk: None,
         }
@@ -73,7 +78,7 @@ impl google_drive3::client::Delegate for UploadDelegate {
         if self.config.print_chunk_errors {
             eprintln!("Warning: Failed attempt to upload chunk: {}", err);
         }
-        self.config.backoff.retry()
+        self.backoff.retry()
     }
 
     fn http_failure(
@@ -91,9 +96,9 @@ impl google_drive3::client::Delegate for UploadDelegate {
                     res.body()
                 );
             }
-            self.config.backoff.retry()
+            self.backoff.retry()
         } else {
-            self.config.backoff.abort()
+            self.backoff.abort()
         }
     }
 }
@@ -102,6 +107,7 @@ fn should_retry(status: http::StatusCode) -> bool {
     status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS
 }
 
+#[derive(Debug, Clone)]
 pub struct BackoffConfig {
     pub max_retries: u32,
     pub min_sleep: Duration,

@@ -1,9 +1,13 @@
 use crate::common::file_info::FileInfo;
+use crate::common::id_gen;
+use crate::common::id_gen::IdGen;
+use async_recursion::async_recursion;
+use std::error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
-
-#[derive(Debug, Clone)]
-pub enum Error {}
 
 #[derive(Debug, Clone)]
 pub struct FileTree {
@@ -11,9 +15,12 @@ pub struct FileTree {
 }
 
 impl FileTree {
-    pub fn from_path(path: &PathBuf) -> Result<FileTree, Error> {
-        let canonical_path = path.canonicalize().unwrap();
-        let root = Folder::from_path(&canonical_path, None).unwrap();
+    pub async fn from_path<'a>(path: &PathBuf, ids: &mut IdGen<'a>) -> Result<FileTree, Error> {
+        let canonical_path = path
+            .canonicalize()
+            .map_err(|err| Error::CanonicalizePath(path.clone(), err))?;
+
+        let root = Folder::from_path(&canonical_path, None, ids).await?;
         Ok(FileTree { root })
     }
 
@@ -79,44 +86,54 @@ pub struct Folder {
     pub path: PathBuf,
     pub parent: Option<Box<Folder>>,
     pub children: Vec<Node>,
+    pub drive_id: String,
 }
 
 impl Folder {
-    pub fn from_path(path: &PathBuf, parent: Option<&Folder>) -> Result<Folder, Error> {
+    #[async_recursion]
+    pub async fn from_path<'a>(
+        path: &PathBuf,
+        parent: Option<&'async_recursion Folder>,
+        ids: &mut IdGen<'a>,
+    ) -> Result<Folder, Error> {
         let name = path
             .file_name()
             .map(|s| s.to_string_lossy().to_string())
-            .unwrap();
-        //.ok_or(Error::InvalidFilePath(path.clone()))?;
+            .ok_or(Error::InvalidPath(path.clone()))?;
+
+        let drive_id = ids.next().await.map_err(Error::GetId)?;
 
         let mut folder = Folder {
             name,
             path: path.clone(),
             parent: parent.map(|folder| Box::new(folder.clone())),
             children: Vec::new(),
+            drive_id,
         };
 
-        let entries = fs::read_dir(path).unwrap();
+        let entries = fs::read_dir(path).map_err(Error::ReadDir)?;
+        let mut children = Vec::new();
 
-        folder.children = entries
-            .into_iter()
-            .map(|e| {
-                let entry = e.unwrap();
+        for e in entries {
+            let entry = e.map_err(Error::ReadDirEntry)?;
+            let path = entry.path();
 
-                let path = entry.path();
+            if path.is_dir() {
+                let folder = Folder::from_path(&path, Some(&folder), ids).await?;
+                let node = Node::FolderNode(folder);
+                children.push(node);
+            } else if path.is_file() {
+                let file = File::from_path(&path, &folder, ids).await?;
+                let node = Node::FileNode(file);
+                children.push(node);
+            } else if path.is_file() {
+                return Err(Error::IsSymlink(path.clone()));
+            } else {
+                return Err(Error::UnknownFileType(path.clone()));
+            }
+        }
 
-                if path.is_dir() {
-                    let folder = Folder::from_path(&path, Some(&folder)).unwrap();
-                    Node::FolderNode(folder)
-                } else if path.is_file() {
-                    let file = File::from_path(&path, &folder).unwrap();
-                    Node::FileNode(file)
-                } else {
-                    // TODO
-                    panic!("Invalid path: {}", path.display());
-                }
-            })
-            .collect();
+        folder.children = children;
 
         Ok(folder)
     }
@@ -187,21 +204,26 @@ pub struct File {
     pub size: u64,
     pub mime_type: mime::Mime,
     pub parent: Box<Node>,
+    pub drive_id: String,
 }
 
 impl File {
-    pub fn from_path(path: &PathBuf, parent: &Folder) -> Result<File, Error> {
+    pub async fn from_path<'a>(
+        path: &PathBuf,
+        parent: &Folder,
+        ids: &mut IdGen<'a>,
+    ) -> Result<File, Error> {
         let name = path
             .file_name()
             .map(|s| s.to_string_lossy().to_string())
-            .unwrap();
-        //.ok_or(Error::InvalidFilePath(path.clone()))?;
+            .ok_or(Error::InvalidPath(path.clone()))?;
 
-        let os_file = fs::File::open(path).unwrap();
+        let os_file = fs::File::open(path).map_err(|err| Error::OpenFile(path.clone(), err))?;
         let size = os_file.metadata().map(|m| m.len()).unwrap_or(0);
         let mime_type = mime_guess::from_path(path)
             .first()
             .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+        let drive_id = ids.next().await.map_err(Error::GetId)?;
 
         let file = File {
             name,
@@ -209,6 +231,7 @@ impl File {
             size,
             mime_type,
             parent: Box::new(Node::FolderNode(parent.clone())),
+            drive_id,
         };
 
         Ok(file)
@@ -220,6 +243,42 @@ impl File {
             size: self.size,
             mime_type: self.mime_type.clone(),
             parents,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Error {
+    CanonicalizePath(PathBuf, io::Error),
+    ReadDir(io::Error),
+    ReadDirEntry(io::Error),
+    OpenFile(PathBuf, io::Error),
+    GetId(id_gen::Error),
+    InvalidPath(PathBuf),
+    IsSymlink(PathBuf),
+    UnknownFileType(PathBuf),
+}
+
+impl error::Error for Error {}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::CanonicalizePath(path, e) => write!(
+                f,
+                "Failed to get canonical path of {}: {}",
+                path.display(),
+                e
+            ),
+            Error::ReadDir(e) => write!(f, "Error reading directory: '{}'", e),
+            Error::ReadDirEntry(e) => write!(f, "Error reading directory entry: {}", e),
+            Error::OpenFile(path, e) => {
+                write!(f, "Failed to open file '{}': {}", path.display(), e)
+            }
+            Error::GetId(e) => write!(f, "Error getting id: {}", e),
+            Error::InvalidPath(path) => write!(f, "Invalid path: {}", path.display()),
+            Error::IsSymlink(path) => write!(f, "Path is symlink: {}", path.display()),
+            Error::UnknownFileType(path) => write!(f, "Unknown file type: {}", path.display()),
         }
     }
 }

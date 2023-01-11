@@ -1,5 +1,4 @@
 use crate::common::chunk_size::ChunkSize;
-use crate::common::delegate::Backoff;
 use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
@@ -31,16 +30,16 @@ pub struct Config {
 pub async fn update(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
-    let mut delegate = UploadDelegate::new(UploadDelegateConfig {
+    let delegate_config = UploadDelegateConfig {
         chunk_size: config.chunk_size.in_bytes(),
-        backoff: Backoff::new(BackoffConfig {
+        backoff_config: BackoffConfig {
             max_retries: 20,
             min_sleep: Duration::from_secs(1),
             max_sleep: Duration::from_secs(60),
-        }),
+        },
         print_chunk_errors: config.print_chunk_errors,
         print_chunk_info: config.print_chunk_info,
-    });
+    };
 
     let file = fs::File::open(&config.file_path)
         .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
@@ -67,7 +66,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
         config.file_path.display()
     );
 
-    let file = update_file(&hub, reader, &config.file_id, file_info, &mut delegate)
+    let file = update_file(&hub, reader, &config.file_id, file_info, delegate_config)
         .await
         .map_err(Error::Update)?;
 
@@ -84,7 +83,7 @@ pub async fn update_file<'a, RS>(
     src_file: RS,
     file_id: &str,
     file_info: FileInfo,
-    delegate: &'a mut dyn google_drive3::client::Delegate,
+    delegate_config: UploadDelegateConfig,
 ) -> Result<google_drive3::api::File, google_drive3::Error>
 where
     RS: google_drive3::client::ReadSeek,
@@ -94,12 +93,14 @@ where
         ..google_drive3::api::File::default()
     };
 
+    let mut delegate = UploadDelegate::new(delegate_config);
+
     let req = hub
         .files()
         .update(dst_file, &file_id)
         .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink")
         .add_scope(google_drive3::api::Scope::Full)
-        .delegate(delegate)
+        .delegate(&mut delegate)
         .supports_all_drives(true);
 
     let (_, file) = if file_info.size > 0 {

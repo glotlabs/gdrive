@@ -129,6 +129,10 @@ enum FileCommand {
         #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
+        /// Upload directories
+        #[arg(long)]
+        recursive: bool,
+
         /// Set chunk size in MB, must be a power of two.
         #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
         chunk_size: ChunkSize,
@@ -294,6 +298,7 @@ async fn main() {
                     file_path,
                     mime,
                     parent,
+                    recursive,
                     chunk_size,
                     print_chunk_errors,
                     print_chunk_info,
@@ -306,6 +311,7 @@ async fn main() {
                         chunk_size,
                         print_chunk_errors,
                         print_chunk_info,
+                        upload_directories: recursive,
                     })
                     .await
                     .unwrap_or_else(handle_error)
@@ -345,6 +351,7 @@ async fn main() {
                 FileCommand::Mkdir { name, parent } => {
                     // fmt
                     files::mkdir(files::mkdir::Config {
+                        id: None,
                         name,
                         parents: parent,
                     })

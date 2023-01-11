@@ -1,5 +1,4 @@
 use crate::common::chunk_size::ChunkSize;
-use crate::common::delegate::Backoff;
 use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
@@ -14,6 +13,7 @@ use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct Config {
+    pub id: Option<String>,
     pub name: String,
     pub parents: Option<Vec<String>>,
 }
@@ -21,25 +21,25 @@ pub struct Config {
 pub async fn mkdir(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
-    let delegate = UploadDelegate::new(UploadDelegateConfig {
+    let delegate_config = UploadDelegateConfig {
         chunk_size: ChunkSize::default().in_bytes(),
-        backoff: Backoff::new(BackoffConfig {
+        backoff_config: BackoffConfig {
             max_retries: 100,
             min_sleep: Duration::from_secs(1),
             max_sleep: Duration::from_secs(30),
-        }),
+        },
         print_chunk_errors: false,
         print_chunk_info: false,
-    });
+    };
 
-    let file = create_directory(&hub, &config, delegate)
+    let file = create_directory(&hub, &config, delegate_config)
         .await
         .map_err(Error::CreateDirectory)?;
 
     println!(
         "Created directory '{}' with id: {}",
         config.name,
-        file.id.unwrap()
+        file.id.unwrap_or_default()
     );
     Ok(())
 }
@@ -47,14 +47,17 @@ pub async fn mkdir(config: Config) -> Result<(), Error> {
 pub async fn create_directory(
     hub: &Hub,
     config: &Config,
-    mut delegate: UploadDelegate,
+    delegate_config: UploadDelegateConfig,
 ) -> Result<google_drive3::api::File, google_drive3::Error> {
     let dst_file = google_drive3::api::File {
+        id: config.id.clone(),
         name: Some(config.name.clone()),
         parents: config.parents.clone(),
         mime_type: Some(MIME_TYPE_FOLDER.to_string()),
         ..google_drive3::api::File::default()
     };
+
+    let mut delegate = UploadDelegate::new(delegate_config);
 
     let req = hub
         .files()
