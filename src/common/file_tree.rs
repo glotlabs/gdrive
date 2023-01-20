@@ -203,7 +203,7 @@ pub struct File {
     pub path: PathBuf,
     pub size: u64,
     pub mime_type: mime::Mime,
-    pub parent: Box<Node>,
+    pub parent: Folder,
     pub drive_id: String,
 }
 
@@ -230,7 +230,7 @@ impl File {
             path: path.clone(),
             size,
             mime_type,
-            parent: Box::new(Node::FolderNode(parent.clone())),
+            parent: parent.clone(),
             drive_id,
         };
 
