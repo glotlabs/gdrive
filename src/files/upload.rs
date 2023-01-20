@@ -12,6 +12,7 @@ use crate::files;
 use crate::files::info::DisplayConfig;
 use crate::files::mkdir;
 use crate::hub::Hub;
+use human_bytes::human_bytes;
 use mime::Mime;
 use std::error;
 use std::fmt::Display;
@@ -100,6 +101,15 @@ pub async fn upload_recursive(
         .await
         .map_err(Error::CreateFileTree)?;
 
+    let tree_info = tree.info();
+
+    println!(
+        "Found {} files in {} directories with a total size of {}",
+        tree_info.file_count,
+        tree_info.folder_count,
+        human_bytes(tree_info.total_file_size as f64)
+    );
+
     for folder in &tree.folders() {
         let folder_parents = folder
             .parent
@@ -151,6 +161,13 @@ pub async fn upload_recursive(
             );
         }
     }
+
+    println!(
+        "Uploaded {} files in {} directories with a total size of {}",
+        tree_info.file_count,
+        tree_info.folder_count,
+        human_bytes(tree_info.total_file_size as f64)
+    );
 
     Ok(())
 }
