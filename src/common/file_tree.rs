@@ -152,6 +152,12 @@ impl Folder {
         files
     }
 
+    pub fn relative_path(&self) -> PathBuf {
+        let mut root_path = get_root_folder(self).path;
+        root_path.pop();
+        self.path.strip_prefix(root_path).unwrap().to_path_buf()
+    }
+
     pub fn folders_recursive(&self) -> Vec<Folder> {
         Folder::collect_folders_recursive(&self)
     }
@@ -180,20 +186,6 @@ impl Folder {
         });
 
         folders
-    }
-
-    fn root_path(&self) -> Option<PathBuf> {
-        let mut parent = self.parent.clone();
-
-        while let Some(folder) = parent {
-            if folder.parent.is_none() {
-                return Some(folder.path.clone());
-            }
-
-            parent = folder.parent.clone();
-        }
-
-        None
     }
 }
 
@@ -235,6 +227,12 @@ impl File {
         };
 
         Ok(file)
+    }
+
+    pub fn relative_path(&self) -> PathBuf {
+        let mut root_path = get_root_folder(&self.parent).path;
+        root_path.pop();
+        self.path.strip_prefix(root_path).unwrap().to_path_buf()
     }
 
     pub fn info(&self, parents: Option<Vec<String>>) -> FileInfo {
@@ -281,4 +279,18 @@ impl Display for Error {
             Error::UnknownFileType(path) => write!(f, "Unknown file type: {}", path.display()),
         }
     }
+}
+
+fn get_root_folder(folder: &Folder) -> Folder {
+    let mut root_candidate = Some(folder.clone());
+
+    while let Some(folder) = root_candidate {
+        if folder.parent.is_none() {
+            return folder.clone();
+        }
+
+        root_candidate = folder.parent.map(|folder| *folder.clone());
+    }
+
+    folder.clone()
 }

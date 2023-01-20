@@ -122,7 +122,11 @@ pub async fn upload_recursive(
         let folder_id = drive_folder.id.ok_or(Error::DriveFolderMissingId)?;
         let parents = Some(vec![folder_id.clone()]);
 
-        println!("Created directory '{}' with id: {}", folder.name, folder_id);
+        println!(
+            "Created directory '{}' with id: {}",
+            folder.relative_path().display(),
+            folder_id
+        );
 
         for file in folder.files() {
             let os_file = fs::File::open(&file.path)
@@ -133,7 +137,7 @@ pub async fn upload_recursive(
             let drive_file = upload_file(
                 hub,
                 os_file,
-                Some(file.drive_id),
+                Some(file.drive_id.clone()),
                 file_info,
                 delegate_config.clone(),
             )
@@ -142,7 +146,7 @@ pub async fn upload_recursive(
 
             println!(
                 "Uploaded file '{}' with id: {}",
-                file.name,
+                file.relative_path().display(),
                 drive_file.id.unwrap_or_default()
             );
         }
