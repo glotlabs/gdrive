@@ -1,10 +1,12 @@
 use crate::common::drive_file;
+use crate::common::file_tree_drive::FileTreeDrive;
 use crate::common::hub_helper;
 use crate::files;
 use crate::hub::Hub;
 use crate::md5_writer::Md5Writer;
 use futures::stream::StreamExt;
 use google_drive3::hyper;
+use human_bytes::human_bytes;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -39,13 +41,66 @@ pub async fn download(config: Config) -> Result<(), Error> {
     err_if_file_exists(&file_path, config.existing_file_action)?;
     err_if_directory(&file, &config)?;
 
+    if drive_file::is_directory(&file) {
+        download_directory(&hub, &file).await?;
+    } else {
+        download_regular(&hub, &file, &config).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn download_regular(
+    hub: &Hub,
+    file: &google_drive3::api::File,
+    config: &Config,
+) -> Result<(), Error> {
+    let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
+    let file_path = PathBuf::from(&file_name);
+
     let body = download_file(&hub, &config.file_id)
         .await
         .map_err(Error::DownloadFile)?;
 
     println!("Downloading {}", file_name);
-    save_body_to_file(body, &file_path, file.md5_checksum).await?;
+    save_body_to_file(body, &file_path, file.md5_checksum.clone()).await?;
     println!("Successfully downloaded {} ", file_name,);
+
+    Ok(())
+}
+
+pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> Result<(), Error> {
+    let tree = FileTreeDrive::from_file(&hub, &file).await.unwrap();
+    let tree_info = tree.info();
+
+    println!(
+        "Found {} files in {} directories with a total size of {}",
+        tree_info.file_count,
+        tree_info.folder_count,
+        human_bytes(tree_info.total_file_size as f64)
+    );
+
+    for folder in &tree.folders() {
+        println!("Creating directory {}", folder.relative_path().display());
+        fs::create_dir_all(folder.relative_path()).unwrap();
+
+        for file in folder.files() {
+            let body = download_file(&hub, &file.drive_id)
+                .await
+                .map_err(Error::DownloadFile)?;
+
+            let file_path = file.relative_path();
+            println!("Downloading file '{}'", file_path.display());
+            save_body_to_file(body, &file_path, file.md5.clone()).await?;
+        }
+    }
+
+    println!(
+        "Downloaded {} files in {} directories with a total size of {}",
+        tree_info.file_count,
+        tree_info.folder_count,
+        human_bytes(tree_info.total_file_size as f64)
+    );
 
     Ok(())
 }

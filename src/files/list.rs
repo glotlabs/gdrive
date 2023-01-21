@@ -4,6 +4,7 @@ use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
 use crate::files;
 use crate::files::info::DisplayConfig;
+use crate::hub::Hub;
 use std::cmp::min;
 use std::error;
 use std::fmt;
@@ -21,7 +22,8 @@ pub struct Config {
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
-    let files = list_files(&config).await?;
+    let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
+    let files = list_files(&hub, &config).await?;
 
     let mut values: Vec<[String; 5]> = vec![];
 
@@ -53,9 +55,10 @@ pub async fn list(config: Config) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn list_files(config: &Config) -> Result<Vec<google_drive3::api::File>, Error> {
-    let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
-
+pub async fn list_files(
+    hub: &Hub,
+    config: &Config,
+) -> Result<Vec<google_drive3::api::File>, Error> {
     let mut collected_files: Vec<google_drive3::api::File> = vec![];
     let mut next_page_token: Option<String> = None;
 

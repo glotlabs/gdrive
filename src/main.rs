@@ -115,9 +115,13 @@ enum FileCommand {
         /// File id
         file_id: String,
 
-        /// Overwrite existing files
+        /// Overwrite existing files and folders
         #[arg(long)]
         overwrite: bool,
+
+        /// Download directories
+        #[arg(long)]
+        recursive: bool,
     },
 
     /// Upload file
@@ -286,7 +290,11 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Download { file_id, overwrite } => {
+                FileCommand::Download {
+                    file_id,
+                    overwrite,
+                    recursive,
+                } => {
                     let existing_file_action = if overwrite {
                         ExistingFileAction::Overwrite
                     } else {
@@ -296,7 +304,7 @@ async fn main() {
                     files::download(files::download::Config {
                         file_id,
                         existing_file_action,
-                        download_directories: false,
+                        download_directories: recursive,
                     })
                     .await
                     .unwrap_or_else(handle_error)

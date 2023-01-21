@@ -49,7 +49,7 @@ pub async fn upload(config: Config) -> Result<(), Error> {
     err_if_directory(&config.file_path, &config)?;
 
     if config.file_path.is_dir() {
-        upload_recursive(&hub, &config, delegate_config).await?;
+        upload_directory(&hub, &config, delegate_config).await?;
     } else {
         upload_regular(&hub, &config, delegate_config).await?;
     }
@@ -91,7 +91,7 @@ pub async fn upload_regular(
     Ok(())
 }
 
-pub async fn upload_recursive(
+pub async fn upload_directory(
     hub: &Hub,
     config: &Config,
     delegate_config: UploadDelegateConfig,
