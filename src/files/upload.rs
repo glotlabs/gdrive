@@ -117,6 +117,12 @@ pub async fn upload_directory(
             .map(|p| vec![p.drive_id.clone()])
             .or_else(|| config.parents.clone());
 
+        println!(
+            "Creating directory '{}' with id: {}",
+            folder.relative_path().display(),
+            folder.drive_id
+        );
+
         let drive_folder = mkdir::create_directory(
             hub,
             &mkdir::Config {
@@ -132,19 +138,19 @@ pub async fn upload_directory(
         let folder_id = drive_folder.id.ok_or(Error::DriveFolderMissingId)?;
         let parents = Some(vec![folder_id.clone()]);
 
-        println!(
-            "Created directory '{}' with id: {}",
-            folder.relative_path().display(),
-            folder_id
-        );
-
         for file in folder.files() {
             let os_file = fs::File::open(&file.path)
                 .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
 
             let file_info = file.info(parents.clone());
 
-            let drive_file = upload_file(
+            println!(
+                "Uploading file '{}' with id: {}",
+                file.relative_path().display(),
+                file.drive_id
+            );
+
+            upload_file(
                 hub,
                 os_file,
                 Some(file.drive_id.clone()),
@@ -153,12 +159,6 @@ pub async fn upload_directory(
             )
             .await
             .map_err(Error::Upload)?;
-
-            println!(
-                "Uploaded file '{}' with id: {}",
-                file.relative_path().display(),
-                drive_file.id.unwrap_or_default()
-            );
         }
     }
 
