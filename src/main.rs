@@ -122,6 +122,10 @@ enum FileCommand {
         /// Download directories
         #[arg(long)]
         recursive: bool,
+
+        /// Path where the file/directory should be downloaded to
+        #[arg(long, value_name = "PATH")]
+        destination: Option<PathBuf>,
     },
 
     /// Upload file
@@ -137,7 +141,7 @@ enum FileCommand {
         #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
-        /// Upload directories
+        /// Upload directories. Note that this will always create a new directory on drive and will not update existing directories with the same name
         #[arg(long)]
         recursive: bool,
 
@@ -294,6 +298,7 @@ async fn main() {
                     file_id,
                     overwrite,
                     recursive,
+                    destination,
                 } => {
                     let existing_file_action = if overwrite {
                         ExistingFileAction::Overwrite
@@ -305,6 +310,7 @@ async fn main() {
                         file_id,
                         existing_file_action,
                         download_directories: recursive,
+                        destination_root: destination,
                     })
                     .await
                     .unwrap_or_else(handle_error)

@@ -21,6 +21,28 @@ pub struct Config {
     pub file_id: String,
     pub existing_file_action: ExistingFileAction,
     pub download_directories: bool,
+    pub destination_root: Option<PathBuf>,
+}
+
+impl Config {
+    fn canonical_destination_root(&self) -> Result<PathBuf, Error> {
+        if let Some(path) = &self.destination_root {
+            if !path.exists() {
+                Err(Error::DestinationPathDoesNotExist(path.clone()))
+            } else if !path.is_dir() {
+                Err(Error::DestinationPathNotADirectory(path.clone()))
+            } else {
+                path.canonicalize()
+                    .map_err(|err| Error::CanonicalizeDestinationPath(path.clone(), err))
+            }
+        } else {
+            let current_path = PathBuf::from(".");
+            let canonical_current_path = current_path
+                .canonicalize()
+                .map_err(|err| Error::CanonicalizeDestinationPath(current_path.clone(), err))?;
+            Ok(canonical_current_path)
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -36,14 +58,11 @@ pub async fn download(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::GetFile)?;
 
-    let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
-    let file_path = PathBuf::from(&file_name);
-
-    err_if_file_exists(&file_path, config.existing_file_action)?;
+    err_if_file_exists(&file, &config)?;
     err_if_directory(&file, &config)?;
 
     if drive_file::is_directory(&file) {
-        download_directory(&hub, &file).await?;
+        download_directory(&hub, &file, &config).await?;
     } else {
         download_regular(&hub, &file, &config).await?;
     }
@@ -57,20 +76,25 @@ pub async fn download_regular(
     config: &Config,
 ) -> Result<(), Error> {
     let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
-    let file_path = PathBuf::from(&file_name);
+    let root_path = config.canonical_destination_root()?;
+    let abs_file_path = root_path.join(&file_name);
 
     let body = download_file(&hub, &config.file_id)
         .await
         .map_err(Error::DownloadFile)?;
 
     println!("Downloading {}", file_name);
-    save_body_to_file(body, &file_path, file.md5_checksum.clone()).await?;
+    save_body_to_file(body, &abs_file_path, file.md5_checksum.clone()).await?;
     println!("Successfully downloaded {} ", file_name,);
 
     Ok(())
 }
 
-pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> Result<(), Error> {
+pub async fn download_directory(
+    hub: &Hub,
+    file: &google_drive3::api::File,
+    config: &Config,
+) -> Result<(), Error> {
     let tree = FileTreeDrive::from_file(&hub, &file)
         .await
         .map_err(Error::CreateFileTree)?;
@@ -84,10 +108,15 @@ pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> R
         human_bytes(tree_info.total_file_size as f64)
     );
 
+    let root_path = config.canonical_destination_root()?;
+
     for folder in &tree.folders() {
         let folder_path = folder.relative_path();
+        let abs_folder_path = root_path.join(&folder_path);
+
         println!("Creating directory {}", folder_path.display());
-        fs::create_dir_all(&folder_path).map_err(|err| Error::CreateDirectory(folder_path, err))?;
+        fs::create_dir_all(&abs_folder_path)
+            .map_err(|err| Error::CreateDirectory(abs_folder_path, err))?;
 
         for file in folder.files() {
             let body = download_file(&hub, &file.drive_id)
@@ -95,8 +124,10 @@ pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> R
                 .map_err(Error::DownloadFile)?;
 
             let file_path = file.relative_path();
+            let abs_file_path = root_path.join(&file_path);
+
             println!("Downloading file '{}'", file_path.display());
-            save_body_to_file(body, &file_path, file.md5.clone()).await?;
+            save_body_to_file(body, &abs_file_path, file.md5.clone()).await?;
         }
     }
 
@@ -139,6 +170,9 @@ pub enum Error {
     ReadChunk(hyper::Error),
     WriteChunk(io::Error),
     CreateFileTree(file_tree_drive::Error),
+    DestinationPathDoesNotExist(PathBuf),
+    DestinationPathNotADirectory(PathBuf),
+    CanonicalizeDestinationPath(PathBuf, io::Error),
 }
 
 impl error::Error for Error {}
@@ -180,6 +214,22 @@ impl Display for Error {
             Error::ReadChunk(err) => write!(f, "Failed read from stream: {}", err),
             Error::WriteChunk(err) => write!(f, "Failed write to file: {}", err),
             Error::CreateFileTree(err) => write!(f, "Failed to create file tree: {}", err),
+            Error::DestinationPathDoesNotExist(path) => {
+                write!(f, "Destination path '{}' does not exist", path.display())
+            }
+            Error::DestinationPathNotADirectory(path) => {
+                write!(
+                    f,
+                    "Destination path '{}' is not a directory",
+                    path.display()
+                )
+            }
+            Error::CanonicalizeDestinationPath(path, err) => write!(
+                f,
+                "Failed to canonicalize destination path '{}': {}",
+                path.display(),
+                err
+            ),
         }
     }
 }
@@ -209,8 +259,12 @@ async fn save_body_to_file(
     fs::rename(&tmp_file_path, &file_path).map_err(Error::RenameFile)
 }
 
-fn err_if_file_exists(file_path: &PathBuf, action: ExistingFileAction) -> Result<(), Error> {
-    if file_path.exists() && action == ExistingFileAction::Abort {
+fn err_if_file_exists(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
+    let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
+    let root_path = config.canonical_destination_root()?;
+    let file_path = root_path.join(&file_name);
+
+    if file_path.exists() && config.existing_file_action == ExistingFileAction::Abort {
         Err(Error::FileExists(file_path.clone()))
     } else {
         Ok(())
