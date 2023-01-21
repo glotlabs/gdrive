@@ -104,6 +104,10 @@ enum FileCommand {
         /// Order by. See https://developers.google.com/drive/api/v3/reference/files/list
         #[arg(long, default_value_t = ListSortOrder::default())]
         order_by: ListSortOrder,
+
+        /// List files in a specific folder
+        #[arg(long, value_name = "DIRECTORY_ID")]
+        parent: Option<String>,
     },
 
     /// Download file
@@ -267,10 +271,14 @@ async fn main() {
                     max,
                     query,
                     order_by,
+                    parent,
                 } => {
-                    // fmt
+                    let q = parent
+                        .map(|folder_id| ListQuery::FilesInFolder { folder_id })
+                        .unwrap_or(query);
+
                     files::list(files::list::Config {
-                        query,
+                        query: q,
                         order_by,
                         max_files: max,
                     })
