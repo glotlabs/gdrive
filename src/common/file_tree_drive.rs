@@ -1,5 +1,4 @@
 use crate::common::drive_file;
-use crate::common::id_gen;
 use crate::files::list;
 use crate::files::list::ListQuery;
 use crate::hub::Hub;
@@ -7,7 +6,6 @@ use async_recursion::async_recursion;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -97,8 +95,8 @@ impl Folder {
     ) -> Result<Folder, Error> {
         err_if_not_directory(&file)?;
 
-        let name = file.name.clone().unwrap();
-        let file_id = file.id.clone().unwrap();
+        let name = file.name.clone().ok_or(Error::MissingFileName)?;
+        let file_id = file.id.clone().ok_or(Error::MissingFileId)?;
 
         let mut folder = Folder {
             name,
@@ -116,7 +114,7 @@ impl Folder {
             },
         )
         .await
-        .unwrap();
+        .map_err(Error::ListFiles)?;
 
         let mut children = Vec::new();
 
@@ -130,7 +128,7 @@ impl Folder {
                 let node = Node::FileNode(f);
                 children.push(node);
             } else {
-                return Err(Error::UnknownFileType(file.name.unwrap_or_default()));
+                // Skip documents
             }
         }
 
@@ -208,9 +206,9 @@ impl File {
         file: &google_drive3::api::File,
         parent: &Folder,
     ) -> Result<File, Error> {
-        let name = file.name.clone().unwrap();
-        let size = file.size.unwrap() as u64;
-        let file_id = file.id.clone().unwrap();
+        let name = file.name.clone().ok_or(Error::MissingFileName)?;
+        let size = file.size.ok_or(Error::MissingFileSize)? as u64;
+        let file_id = file.id.clone().ok_or(Error::MissingFileId)?;
         let md5 = file.md5_checksum.clone();
 
         let file = File {
@@ -231,15 +229,11 @@ impl File {
 
 #[derive(Debug)]
 pub enum Error {
-    CanonicalizePath(PathBuf, io::Error),
-    ReadDir(io::Error),
-    ReadDirEntry(io::Error),
-    OpenFile(PathBuf, io::Error),
-    GetId(id_gen::Error),
-    InvalidPath(PathBuf),
-    IsSymlink(PathBuf),
-    UnknownFileType(String),
     NotADirectory(String),
+    MissingFileName,
+    MissingFileId,
+    MissingFileSize,
+    ListFiles(list::Error),
 }
 
 impl error::Error for Error {}
@@ -247,22 +241,11 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::CanonicalizePath(path, e) => write!(
-                f,
-                "Failed to get canonical path of {}: {}",
-                path.display(),
-                e
-            ),
-            Error::ReadDir(e) => write!(f, "Error reading directory: '{}'", e),
-            Error::ReadDirEntry(e) => write!(f, "Error reading directory entry: {}", e),
-            Error::OpenFile(path, e) => {
-                write!(f, "Failed to open file '{}': {}", path.display(), e)
-            }
-            Error::GetId(e) => write!(f, "Error getting id: {}", e),
-            Error::InvalidPath(path) => write!(f, "Invalid path: {}", path.display()),
-            Error::IsSymlink(path) => write!(f, "Path is symlink: {}", path.display()),
-            Error::UnknownFileType(name) => write!(f, "Unknown file type: {}", name),
             Error::NotADirectory(name) => write!(f, "'{}' is not a directory", name),
+            Error::MissingFileName => write!(f, "Drive file is missing file name"),
+            Error::MissingFileId => write!(f, "Drive file is missing file id"),
+            Error::MissingFileSize => write!(f, "Drive file is missing file size"),
+            Error::ListFiles(err) => write!(f, "Failed to list files: {}", err),
         }
     }
 }

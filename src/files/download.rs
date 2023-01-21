@@ -1,4 +1,5 @@
 use crate::common::drive_file;
+use crate::common::file_tree_drive;
 use crate::common::file_tree_drive::FileTreeDrive;
 use crate::common::hub_helper;
 use crate::files;
@@ -70,7 +71,10 @@ pub async fn download_regular(
 }
 
 pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> Result<(), Error> {
-    let tree = FileTreeDrive::from_file(&hub, &file).await.unwrap();
+    let tree = FileTreeDrive::from_file(&hub, &file)
+        .await
+        .map_err(Error::CreateFileTree)?;
+
     let tree_info = tree.info();
 
     println!(
@@ -81,8 +85,9 @@ pub async fn download_directory(hub: &Hub, file: &google_drive3::api::File) -> R
     );
 
     for folder in &tree.folders() {
-        println!("Creating directory {}", folder.relative_path().display());
-        fs::create_dir_all(folder.relative_path()).unwrap();
+        let folder_path = folder.relative_path();
+        println!("Creating directory {}", folder_path.display());
+        fs::create_dir_all(&folder_path).map_err(|err| Error::CreateDirectory(folder_path, err))?;
 
         for file in folder.files() {
             let body = download_file(&hub, &file.drive_id)
@@ -128,10 +133,12 @@ pub enum Error {
     IsDirectory(String),
     Md5Mismatch { expected: String, actual: String },
     CreateFile(io::Error),
+    CreateDirectory(PathBuf, io::Error),
     CopyFile(io::Error),
     RenameFile(io::Error),
     ReadChunk(hyper::Error),
     WriteChunk(io::Error),
+    CreateFileTree(file_tree_drive::Error),
 }
 
 impl error::Error for Error {}
@@ -162,10 +169,17 @@ impl Display for Error {
                 )
             }
             Error::CreateFile(err) => write!(f, "Failed to create file: {}", err),
+            Error::CreateDirectory(path, err) => write!(
+                f,
+                "Failed to create directory '{}': {}",
+                path.display(),
+                err
+            ),
             Error::CopyFile(err) => write!(f, "Failed to copy file: {}", err),
             Error::RenameFile(err) => write!(f, "Failed to rename file: {}", err),
             Error::ReadChunk(err) => write!(f, "Failed read from stream: {}", err),
             Error::WriteChunk(err) => write!(f, "Failed write to file: {}", err),
+            Error::CreateFileTree(err) => write!(f, "Failed to create file tree: {}", err),
         }
     }
 }
