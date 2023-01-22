@@ -209,7 +209,8 @@ enum FileCommand {
         print_only_id: bool,
     },
 
-    /// Import file as a google document
+    /// Import file as a google document/spreadsheet/presentation.
+    /// Example of file types that can be imported: doc, docx, odt, pdf, html, xls, xlsx, csv, ods, ppt, pptx, odp
     Import {
         /// Path to file
         file_path: PathBuf,
