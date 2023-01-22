@@ -209,6 +209,20 @@ enum FileCommand {
         #[arg(long, default_value_t = false)]
         print_only_id: bool,
     },
+
+    /// Import file as a google document
+    Import {
+        /// Path to file
+        file_path: PathBuf,
+
+        /// Upload to an existing directory
+        #[arg(long, value_name = "DIRECTORY_ID")]
+        parent: Option<Vec<String>>,
+
+        /// Print only id of file
+        #[arg(long, default_value_t = false)]
+        print_only_id: bool,
+    },
 }
 
 #[tokio::main]
@@ -388,6 +402,21 @@ async fn main() {
                     files::mkdir(files::mkdir::Config {
                         id: None,
                         name,
+                        parents: parent,
+                        print_only_id,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Import {
+                    file_path,
+                    parent,
+                    print_only_id,
+                } => {
+                    // fmt
+                    files::import(files::import::Config {
+                        file_path,
                         parents: parent,
                         print_only_id,
                     })
