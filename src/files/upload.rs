@@ -30,6 +30,7 @@ pub struct Config {
     pub print_chunk_errors: bool,
     pub print_chunk_info: bool,
     pub upload_directories: bool,
+    pub print_only_id: bool,
 }
 
 pub async fn upload(config: Config) -> Result<(), Error> {
@@ -77,16 +78,21 @@ pub async fn upload_regular(
 
     let reader = std::io::BufReader::new(file);
 
-    println!("Uploading {}", config.file_path.display());
+    if !config.print_only_id {
+        println!("Uploading {}", config.file_path.display());
+    }
 
     let file = upload_file(&hub, reader, None, file_info, delegate_config)
         .await
         .map_err(Error::Upload)?;
 
-    println!("File successfully uploaded");
-
-    let fields = files::info::prepare_fields(&file, &DisplayConfig::default());
-    files::info::print_fields(&fields);
+    if config.print_only_id {
+        print!("{}", file.id.unwrap_or_default())
+    } else {
+        println!("File successfully uploaded");
+        let fields = files::info::prepare_fields(&file, &DisplayConfig::default());
+        files::info::print_fields(&fields);
+    }
 
     Ok(())
 }
@@ -103,12 +109,14 @@ pub async fn upload_directory(
 
     let tree_info = tree.info();
 
-    println!(
-        "Found {} files in {} directories with a total size of {}",
-        tree_info.file_count,
-        tree_info.folder_count,
-        human_bytes(tree_info.total_file_size as f64)
-    );
+    if !config.print_only_id {
+        println!(
+            "Found {} files in {} directories with a total size of {}",
+            tree_info.file_count,
+            tree_info.folder_count,
+            human_bytes(tree_info.total_file_size as f64)
+        );
+    }
 
     for folder in &tree.folders() {
         let folder_parents = folder
@@ -117,11 +125,13 @@ pub async fn upload_directory(
             .map(|p| vec![p.drive_id.clone()])
             .or_else(|| config.parents.clone());
 
-        println!(
-            "Creating directory '{}' with id: {}",
-            folder.relative_path().display(),
-            folder.drive_id
-        );
+        if !config.print_only_id {
+            println!(
+                "Creating directory '{}' with id: {}",
+                folder.relative_path().display(),
+                folder.drive_id
+            );
+        }
 
         let drive_folder = mkdir::create_directory(
             hub,
@@ -129,11 +139,16 @@ pub async fn upload_directory(
                 id: Some(folder.drive_id.clone()),
                 name: folder.name.clone(),
                 parents: folder_parents,
+                print_only_id: false,
             },
             delegate_config.clone(),
         )
         .await
         .map_err(Error::Mkdir)?;
+
+        if config.print_only_id {
+            println!("{}: {}", folder.relative_path().display(), folder.drive_id);
+        }
 
         let folder_id = drive_folder.id.ok_or(Error::DriveFolderMissingId)?;
         let parents = Some(vec![folder_id.clone()]);
@@ -144,11 +159,13 @@ pub async fn upload_directory(
 
             let file_info = file.info(parents.clone());
 
-            println!(
-                "Uploading file '{}' with id: {}",
-                file.relative_path().display(),
-                file.drive_id
-            );
+            if !config.print_only_id {
+                println!(
+                    "Uploading file '{}' with id: {}",
+                    file.relative_path().display(),
+                    file.drive_id
+                );
+            }
 
             upload_file(
                 hub,
@@ -159,15 +176,21 @@ pub async fn upload_directory(
             )
             .await
             .map_err(Error::Upload)?;
+
+            if config.print_only_id {
+                println!("{}: {}", file.relative_path().display(), file.drive_id);
+            }
         }
     }
 
-    println!(
-        "Uploaded {} files in {} directories with a total size of {}",
-        tree_info.file_count,
-        tree_info.folder_count,
-        human_bytes(tree_info.total_file_size as f64)
-    );
+    if !config.print_only_id {
+        println!(
+            "Uploaded {} files in {} directories with a total size of {}",
+            tree_info.file_count,
+            tree_info.folder_count,
+            human_bytes(tree_info.total_file_size as f64)
+        );
+    }
 
     Ok(())
 }

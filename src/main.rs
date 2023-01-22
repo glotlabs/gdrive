@@ -156,6 +156,10 @@ enum FileCommand {
         /// Print details about each chunk
         #[arg(long, value_name = "", default_value_t = false)]
         print_chunk_info: bool,
+
+        /// Print only id of file/folder
+        #[arg(long, default_value_t = false)]
+        print_only_id: bool,
     },
 
     /// Update file. This will create a new version of the file. The older versions will typically be kept for 30 days.
@@ -201,6 +205,10 @@ enum FileCommand {
         /// Create in an existing directory
         #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
+
+        /// Print only id of folder
+        #[arg(long, default_value_t = false)]
+        print_only_id: bool,
     },
 }
 
@@ -324,6 +332,7 @@ async fn main() {
                     chunk_size,
                     print_chunk_errors,
                     print_chunk_info,
+                    print_only_id,
                 } => {
                     // fmt
                     files::upload(files::upload::Config {
@@ -334,6 +343,7 @@ async fn main() {
                         print_chunk_errors,
                         print_chunk_info,
                         upload_directories: recursive,
+                        print_only_id,
                     })
                     .await
                     .unwrap_or_else(handle_error)
@@ -370,12 +380,17 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Mkdir { name, parent } => {
+                FileCommand::Mkdir {
+                    name,
+                    parent,
+                    print_only_id,
+                } => {
                     // fmt
                     files::mkdir(files::mkdir::Config {
                         id: None,
                         name,
                         parents: parent,
+                        print_only_id,
                     })
                     .await
                     .unwrap_or_else(handle_error)

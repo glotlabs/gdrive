@@ -16,6 +16,7 @@ pub struct Config {
     pub id: Option<String>,
     pub name: String,
     pub parents: Option<Vec<String>>,
+    pub print_only_id: bool,
 }
 
 pub async fn mkdir(config: Config) -> Result<(), Error> {
@@ -36,11 +37,16 @@ pub async fn mkdir(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::CreateDirectory)?;
 
-    println!(
-        "Created directory '{}' with id: {}",
-        config.name,
-        file.id.unwrap_or_default()
-    );
+    if config.print_only_id {
+        print!("{}", file.id.unwrap_or_default())
+    } else {
+        println!(
+            "Created directory '{}' with id: {}",
+            config.name,
+            file.id.unwrap_or_default()
+        );
+    }
+
     Ok(())
 }
 
