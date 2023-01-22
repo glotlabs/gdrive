@@ -85,7 +85,7 @@ pub async fn download_regular(
 
     println!("Downloading {}", file_name);
     save_body_to_file(body, &abs_file_path, file.md5_checksum.clone()).await?;
-    println!("Successfully downloaded {} ", file_name,);
+    println!("Successfully downloaded {}", file_name);
 
     Ok(())
 }

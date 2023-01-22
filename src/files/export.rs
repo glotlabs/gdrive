@@ -50,9 +50,18 @@ pub async fn export(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::ExportFile)?;
 
+    println!(
+        "Exporting {} '{}' to {}",
+        doc_type,
+        file.name.unwrap_or_default(),
+        config.file_path.display()
+    );
+
     files::download::save_body_to_file(body, &config.file_path, file.md5_checksum)
         .await
         .map_err(Error::SaveFile)?;
+
+    println!("Successfully exported {}", config.file_path.display());
 
     Ok(())
 }
