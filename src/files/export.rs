@@ -15,13 +15,19 @@ use std::path::PathBuf;
 pub struct Config {
     pub file_id: String,
     pub file_path: PathBuf,
+    pub existing_file_action: ExistingFileAction,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ExistingFileAction {
+    Abort,
+    Overwrite,
 }
 
 pub async fn export(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
-    // TODO: err if exist
-    // TODO: err if dir
+    err_if_file_exists(&config)?;
 
     let file = files::info::get_file(&hub, &config.file_id)
         .await
@@ -31,8 +37,8 @@ pub async fn export(config: Config) -> Result<(), Error> {
     let doc_type = DocType::from_mime_type(&drive_mime)
         .ok_or(Error::UnsupportedDriveMime(drive_mime.clone()))?;
 
-    let extension =
-        FileExtension::from_path(&config.file_path).ok_or(Error::UnsupportedExportExtension)?;
+    let extension = FileExtension::from_path(&config.file_path)
+        .ok_or(Error::UnsupportedExportExtension(doc_type.clone()))?;
 
     if doc_type.can_export_to(&extension) {
         let mime_type = extension
@@ -49,7 +55,7 @@ pub async fn export(config: Config) -> Result<(), Error> {
 
         Ok(())
     } else {
-        Err(Error::UnsupportedExportExtension)
+        Err(Error::UnsupportedExportExtension(doc_type.clone()))
     }
 }
 
@@ -71,12 +77,13 @@ pub async fn export_file(
 #[derive(Debug)]
 pub enum Error {
     Hub(hub_helper::Error),
+    FileExists(PathBuf),
     GetFile(google_drive3::Error),
     ExportFile(google_drive3::Error),
     MissingDriveMime,
     UnsupportedDriveMime(String),
     GetFileExtensionMime(drive_file::FileExtension),
-    UnsupportedExportExtension,
+    UnsupportedExportExtension(DocType),
     SaveFile(files::download::Error),
 }
 
@@ -86,6 +93,13 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Hub(err) => write!(f, "{}", err),
+            Error::FileExists(path) => {
+                write!(
+                    f,
+                    "File '{}' already exists, use --overwrite to overwrite it",
+                    path.display()
+                )
+            }
             Error::GetFile(err) => {
                 write!(f, "Failed to get file: {}", err)
             }
@@ -101,12 +115,32 @@ impl Display for Error {
                 "Failed to get mime type from file extension: {}",
                 doc_type
             ),
-            Error::UnsupportedExportExtension => {
-                write!(f, "Export to this file extension is not supported")
+            Error::UnsupportedExportExtension(doc_type) => {
+                let supported_types = doc_type
+                    .supported_export_types()
+                    .iter()
+                    .map(|ext| ext.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                write!(
+                    f,
+                    "Export of a {} to this file type is not supported, supported file types are: {}",
+                    doc_type,
+                    supported_types
+                )
             }
             Error::SaveFile(err) => {
                 write!(f, "Failed to save file: {}", err)
             }
         }
+    }
+}
+
+fn err_if_file_exists(config: &Config) -> Result<(), Error> {
+    if config.file_path.exists() && config.existing_file_action == ExistingFileAction::Abort {
+        Err(Error::FileExists(config.file_path.clone()))
+    } else {
+        Ok(())
     }
 }

@@ -8,7 +8,6 @@ pub mod version;
 
 use clap::{Parser, Subcommand};
 use common::chunk_size::ChunkSize;
-use files::download::ExistingFileAction;
 use files::list::ListQuery;
 use files::list::ListSortOrder;
 use mime::Mime;
@@ -229,8 +228,12 @@ enum FileCommand {
         /// File id
         file_id: String,
 
-        /// File path to export to
+        /// File path to export to. The file extension will determine the export format
         file_path: PathBuf,
+
+        /// Overwrite existing files
+        #[arg(long)]
+        overwrite: bool,
     },
 }
 
@@ -331,9 +334,9 @@ async fn main() {
                     destination,
                 } => {
                     let existing_file_action = if overwrite {
-                        ExistingFileAction::Overwrite
+                        files::download::ExistingFileAction::Overwrite
                     } else {
-                        ExistingFileAction::Abort
+                        files::download::ExistingFileAction::Abort
                     };
 
                     files::download(files::download::Config {
@@ -433,11 +436,24 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Export { file_id, file_path } => {
-                    // fmt
-                    files::export(files::export::Config { file_id, file_path })
-                        .await
-                        .unwrap_or_else(handle_error)
+                FileCommand::Export {
+                    file_id,
+                    file_path,
+                    overwrite,
+                } => {
+                    let existing_file_action = if overwrite {
+                        files::export::ExistingFileAction::Overwrite
+                    } else {
+                        files::export::ExistingFileAction::Abort
+                    };
+
+                    files::export(files::export::Config {
+                        file_id,
+                        file_path,
+                        existing_file_action,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
             }
         }
