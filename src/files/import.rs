@@ -101,7 +101,7 @@ impl Display for Error {
             Error::UnsupportedFileType => write!(
                 f,
                 "Unsupported file type, supported file types: {}",
-                DocType::supported_types().join(", ")
+                DocType::supported_import_types().join(", ")
             ),
             Error::GetMime(doc_type) => write!(
                 f,

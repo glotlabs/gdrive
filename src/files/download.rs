@@ -234,7 +234,8 @@ impl Display for Error {
     }
 }
 
-async fn save_body_to_file(
+// TODO: move to common
+pub async fn save_body_to_file(
     mut body: hyper::Body,
     file_path: &PathBuf,
     expected_md5: Option<String>,

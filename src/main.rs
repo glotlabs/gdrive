@@ -223,6 +223,15 @@ enum FileCommand {
         #[arg(long, default_value_t = false)]
         print_only_id: bool,
     },
+
+    /// Export google document to file
+    Export {
+        /// File id
+        file_id: String,
+
+        /// File path to export to
+        file_path: PathBuf,
+    },
 }
 
 #[tokio::main]
@@ -422,6 +431,13 @@ async fn main() {
                     })
                     .await
                     .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Export { file_id, file_path } => {
+                    // fmt
+                    files::export(files::export::Config { file_id, file_path })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
             }
         }

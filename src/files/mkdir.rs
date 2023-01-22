@@ -2,7 +2,7 @@ use crate::common::chunk_size::ChunkSize;
 use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
-use crate::common::drive_file::MIME_TYPE_FOLDER;
+use crate::common::drive_file::MIME_TYPE_DRIVE_FOLDER;
 use crate::common::empty_file::EmptyFile;
 use crate::common::hub_helper;
 use crate::hub::Hub;
@@ -59,7 +59,7 @@ pub async fn create_directory(
         id: config.id.clone(),
         name: Some(config.name.clone()),
         parents: config.parents.clone(),
-        mime_type: Some(MIME_TYPE_FOLDER.to_string()),
+        mime_type: Some(MIME_TYPE_DRIVE_FOLDER.to_string()),
         ..google_drive3::api::File::default()
     };
 
@@ -74,7 +74,7 @@ pub async fn create_directory(
         .supports_all_drives(true);
 
     let empty_file = EmptyFile();
-    let mime_type: mime::Mime = MIME_TYPE_FOLDER.parse().unwrap();
+    let mime_type: mime::Mime = MIME_TYPE_DRIVE_FOLDER.parse().unwrap();
 
     let (_, file) = req.upload(empty_file, mime_type).await?;
 

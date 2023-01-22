@@ -1,5 +1,6 @@
 pub mod delete;
 pub mod download;
+pub mod export;
 pub mod generate_ids;
 pub mod import;
 pub mod info;
@@ -10,6 +11,7 @@ pub mod upload;
 
 pub use delete::delete;
 pub use download::download;
+pub use export::export;
 pub use generate_ids::generate_ids;
 pub use import::import;
 pub use info::info;
