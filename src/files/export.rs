@@ -40,23 +40,21 @@ pub async fn export(config: Config) -> Result<(), Error> {
     let extension = FileExtension::from_path(&config.file_path)
         .ok_or(Error::UnsupportedExportExtension(doc_type.clone()))?;
 
-    if doc_type.can_export_to(&extension) {
-        let mime_type = extension
-            .get_export_mime()
-            .ok_or(Error::GetFileExtensionMime(extension.clone()))?;
+    err_if_unsupported(&doc_type, &extension)?;
 
-        let body = export_file(&hub, &config.file_id, &mime_type)
-            .await
-            .map_err(Error::ExportFile)?;
+    let mime_type = extension
+        .get_export_mime()
+        .ok_or(Error::GetFileExtensionMime(extension.clone()))?;
 
-        files::download::save_body_to_file(body, &config.file_path, file.md5_checksum)
-            .await
-            .map_err(Error::SaveFile)?;
+    let body = export_file(&hub, &config.file_id, &mime_type)
+        .await
+        .map_err(Error::ExportFile)?;
 
-        Ok(())
-    } else {
-        Err(Error::UnsupportedExportExtension(doc_type.clone()))
-    }
+    files::download::save_body_to_file(body, &config.file_path, file.md5_checksum)
+        .await
+        .map_err(Error::SaveFile)?;
+
+    Ok(())
 }
 
 pub async fn export_file(
@@ -140,6 +138,14 @@ impl Display for Error {
 fn err_if_file_exists(config: &Config) -> Result<(), Error> {
     if config.file_path.exists() && config.existing_file_action == ExistingFileAction::Abort {
         Err(Error::FileExists(config.file_path.clone()))
+    } else {
+        Ok(())
+    }
+}
+
+fn err_if_unsupported(doc_type: &DocType, extension: &FileExtension) -> Result<(), Error> {
+    if !doc_type.can_export_to(extension) {
+        Err(Error::UnsupportedExportExtension(doc_type.clone()))
     } else {
         Ok(())
     }
