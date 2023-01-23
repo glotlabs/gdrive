@@ -11,7 +11,7 @@ use std::fmt::Formatter;
 #[derive(Clone, Debug)]
 pub struct Config {
     pub file_id: String,
-    pub parent_id: String,
+    pub to_folder_id: String,
 }
 
 pub async fn mv(config: Config) -> Result<(), Error> {
@@ -28,7 +28,7 @@ pub async fn mv(config: Config) -> Result<(), Error> {
         .await
         .map_err(|err| Error::GetOldParent(old_parent_id.clone(), err))?;
 
-    let new_parent = files::info::get_file(&hub, &config.parent_id)
+    let new_parent = files::info::get_file(&hub, &config.to_folder_id)
         .await
         .map_err(Error::GetNewParent)?;
 
@@ -44,7 +44,7 @@ pub async fn mv(config: Config) -> Result<(), Error> {
     let change_parent_config = ChangeParentConfig {
         file_id: config.file_id,
         old_parent_id,
-        new_parent_id: config.parent_id,
+        new_parent_id: config.to_folder_id,
     };
 
     change_parent(&hub, delegate_config, &change_parent_config)

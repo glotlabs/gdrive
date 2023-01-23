@@ -223,8 +223,17 @@ enum FileCommand {
         /// Id of file or directory to move
         file_id: String,
 
-        /// Id of parent directory to move to
-        parent_id: String,
+        /// Id of folder to move to
+        folder_id: String,
+    },
+
+    /// Copy file
+    Copy {
+        /// Id of file or directory to move
+        file_id: String,
+
+        /// Id of folder to copy to
+        folder_id: String,
     },
 
     /// Import file as a google document/spreadsheet/presentation.
@@ -447,11 +456,24 @@ async fn main() {
                         .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Move { file_id, parent_id } => {
+                FileCommand::Move { file_id, folder_id } => {
                     // fmt
-                    files::mv(files::mv::Config { file_id, parent_id })
-                        .await
-                        .unwrap_or_else(handle_error)
+                    files::mv(files::mv::Config {
+                        file_id,
+                        to_folder_id: folder_id,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Copy { file_id, folder_id } => {
+                    // fmt
+                    files::copy(files::copy::Config {
+                        file_id,
+                        to_folder_id: folder_id,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::Import {

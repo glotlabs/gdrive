@@ -1,3 +1,4 @@
+pub mod copy;
 pub mod delete;
 pub mod download;
 pub mod export;
@@ -11,6 +12,7 @@ pub mod rename;
 pub mod update;
 pub mod upload;
 
+pub use copy::copy;
 pub use delete::delete;
 pub use download::download;
 pub use export::export;
