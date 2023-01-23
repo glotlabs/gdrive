@@ -212,10 +212,19 @@ enum FileCommand {
     /// Rename file/directory
     Rename {
         /// Id of file or directory
-        id: String,
+        file_id: String,
 
         /// New name
         name: String,
+    },
+
+    /// Move file/directory
+    Move {
+        /// Id of file or directory to move
+        file_id: String,
+
+        /// Id of parent directory to move to
+        parent_id: String,
     },
 
     /// Import file as a google document/spreadsheet/presentation.
@@ -431,9 +440,16 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Rename { id, name } => {
+                FileCommand::Rename { file_id, name } => {
                     // fmt
-                    files::rename(files::rename::Config { file_id: id, name })
+                    files::rename(files::rename::Config { file_id, name })
+                        .await
+                        .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Move { file_id, parent_id } => {
+                    // fmt
+                    files::mv(files::mv::Config { file_id, parent_id })
                         .await
                         .unwrap_or_else(handle_error)
                 }
