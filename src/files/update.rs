@@ -78,7 +78,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn update_file<'a, RS>(
+pub async fn update_file<RS>(
     hub: &Hub,
     src_file: RS,
     file_id: &str,
@@ -112,6 +112,25 @@ where
     Ok(file)
 }
 
+pub async fn update_metadata(
+    hub: &Hub,
+    delegate_config: UploadDelegateConfig,
+    patch_file: PatchFile,
+) -> Result<google_drive3::api::File, google_drive3::Error> {
+    let mut delegate = UploadDelegate::new(delegate_config);
+
+    let (_, file) = hub
+        .files()
+        .update(patch_file.file, &patch_file.id)
+        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink")
+        .add_scope(google_drive3::api::Scope::Full)
+        .delegate(&mut delegate)
+        .supports_all_drives(true)
+        .doit_without_upload().await?;
+
+    Ok(file)
+}
+
 #[derive(Debug)]
 pub enum Error {
     Hub(hub_helper::Error),
@@ -134,5 +153,38 @@ impl Display for Error {
             Error::GetFile(err) => write!(f, "Failed to get file: {}", err),
             Error::Update(err) => write!(f, "Failed to update file: {}", err),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PatchFile {
+    id: String,
+    file: google_drive3::api::File,
+}
+
+impl PatchFile {
+    pub fn new(id: String) -> Self {
+        Self {
+            id,
+            file: google_drive3::api::File::default(),
+        }
+    }
+
+    pub fn with_name(&self, name: &str) -> Self {
+        Self {
+            file: google_drive3::api::File {
+                name: Some(name.to_string()),
+                ..self.file.clone()
+            },
+            ..self.clone()
+        }
+    }
+
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+
+    pub fn file(&self) -> google_drive3::api::File {
+        self.file.clone()
     }
 }

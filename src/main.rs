@@ -209,6 +209,15 @@ enum FileCommand {
         print_only_id: bool,
     },
 
+    /// Rename file/directory
+    Rename {
+        /// Id of file or directory
+        id: String,
+
+        /// New name
+        name: String,
+    },
+
     /// Import file as a google document/spreadsheet/presentation.
     /// Example of file types that can be imported: doc, docx, odt, pdf, html, xls, xlsx, csv, ods, ppt, pptx, odp
     Import {
@@ -420,6 +429,13 @@ async fn main() {
                     })
                     .await
                     .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Rename { id, name } => {
+                    // fmt
+                    files::rename(files::rename::Config { file_id: id, name })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::Import {

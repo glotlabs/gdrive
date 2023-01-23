@@ -6,6 +6,7 @@ pub mod import;
 pub mod info;
 pub mod list;
 pub mod mkdir;
+pub mod rename;
 pub mod update;
 pub mod upload;
 
@@ -17,5 +18,6 @@ pub use import::import;
 pub use info::info;
 pub use list::list;
 pub use mkdir::mkdir;
+pub use rename::rename;
 pub use update::update;
 pub use upload::upload;
