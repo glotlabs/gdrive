@@ -3,6 +3,7 @@ use crate::common::delegate::UploadDelegateConfig;
 use crate::common::drive_file;
 use crate::common::hub_helper;
 use crate::files;
+use crate::files::info::DisplayConfig;
 use crate::hub::Hub;
 use std::error;
 use std::fmt::Display;
@@ -41,9 +42,12 @@ pub async fn copy(config: Config) -> Result<(), Error> {
         to_folder_id: config.to_folder_id,
     };
 
-    copy_file(&hub, delegate_config, &copy_config)
+    let new_file = copy_file(&hub, delegate_config, &copy_config)
         .await
         .map_err(Error::Copy)?;
+
+    let fields = files::info::prepare_fields(&new_file, &DisplayConfig::default());
+    files::info::print_fields(&fields);
 
     Ok(())
 }
