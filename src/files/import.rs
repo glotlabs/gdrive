@@ -1,5 +1,3 @@
-use crate::common::chunk_size::ChunkSize;
-use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::drive_file;
 use crate::common::drive_file::DocType;
@@ -14,7 +12,6 @@ use std::fmt::Formatter;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -25,17 +22,7 @@ pub struct Config {
 
 pub async fn import(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
-
-    let delegate_config = UploadDelegateConfig {
-        chunk_size: ChunkSize::default().in_bytes(),
-        backoff_config: BackoffConfig {
-            max_retries: 100,
-            min_sleep: Duration::from_secs(1),
-            max_sleep: Duration::from_secs(30),
-        },
-        print_chunk_errors: false,
-        print_chunk_info: false,
-    };
+    let delegate_config = UploadDelegateConfig::default();
 
     let doc_type =
         drive_file::DocType::from_file_path(&config.file_path).ok_or(Error::UnsupportedFileType)?;

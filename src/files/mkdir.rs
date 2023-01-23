@@ -1,5 +1,3 @@
-use crate::common::chunk_size::ChunkSize;
-use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::drive_file::MIME_TYPE_DRIVE_FOLDER;
@@ -9,7 +7,6 @@ use crate::hub::Hub;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -21,17 +18,7 @@ pub struct Config {
 
 pub async fn mkdir(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
-
-    let delegate_config = UploadDelegateConfig {
-        chunk_size: ChunkSize::default().in_bytes(),
-        backoff_config: BackoffConfig {
-            max_retries: 100,
-            min_sleep: Duration::from_secs(1),
-            max_sleep: Duration::from_secs(30),
-        },
-        print_chunk_errors: false,
-        print_chunk_info: false,
-    };
+    let delegate_config = UploadDelegateConfig::default();
 
     let file = create_directory(&hub, &config, delegate_config)
         .await

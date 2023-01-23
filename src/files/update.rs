@@ -1,5 +1,5 @@
-use crate::common::chunk_size::ChunkSize;
 use crate::common::delegate::BackoffConfig;
+use crate::common::delegate::ChunkSize;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_info;
@@ -31,7 +31,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
     let delegate_config = UploadDelegateConfig {
-        chunk_size: config.chunk_size.in_bytes(),
+        chunk_size: config.chunk_size,
         backoff_config: BackoffConfig {
             max_retries: 20,
             min_sleep: Duration::from_secs(1),

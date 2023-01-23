@@ -7,7 +7,7 @@ pub mod hub;
 pub mod version;
 
 use clap::{Parser, Subcommand};
-use common::chunk_size::ChunkSize;
+use common::delegate::ChunkSize;
 use files::list::ListQuery;
 use files::list::ListSortOrder;
 use mime::Mime;

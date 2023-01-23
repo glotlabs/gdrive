@@ -1,5 +1,4 @@
 pub mod account_archive;
-pub mod chunk_size;
 pub mod delegate;
 pub mod drive_file;
 pub mod empty_file;

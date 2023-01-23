@@ -1,5 +1,5 @@
-use crate::common::chunk_size::ChunkSize;
 use crate::common::delegate::BackoffConfig;
+use crate::common::delegate::ChunkSize;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_info;
@@ -37,7 +37,7 @@ pub async fn upload(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
     let delegate_config = UploadDelegateConfig {
-        chunk_size: config.chunk_size.in_bytes(),
+        chunk_size: config.chunk_size.clone(),
         backoff_config: BackoffConfig {
             max_retries: 100000,
             min_sleep: Duration::from_secs(1),
@@ -213,7 +213,7 @@ where
         ..google_drive3::api::File::default()
     };
 
-    let chunk_size = delegate_config.chunk_size;
+    let chunk_size_bytes = delegate_config.chunk_size.in_bytes();
     let mut delegate = UploadDelegate::new(delegate_config);
 
     let req = hub
@@ -224,7 +224,7 @@ where
         .delegate(&mut delegate)
         .supports_all_drives(true);
 
-    let (_, file) = if file_info.size > chunk_size {
+    let (_, file) = if file_info.size > chunk_size_bytes {
         req.upload_resumable(src_file, file_info.mime_type).await?
     } else {
         req.upload(src_file, file_info.mime_type).await?
