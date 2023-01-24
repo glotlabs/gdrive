@@ -3,7 +3,6 @@ use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_table;
 use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
-use crate::common::permission;
 use crate::files;
 use crate::hub::Hub;
 use std::error;

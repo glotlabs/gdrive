@@ -306,6 +306,20 @@ enum PermissionCommand {
         /// File id
         file_id: String,
     },
+
+    /// Revoke permissions for a file. If no other options are specified, the 'anyone' permission will be revoked
+    Revoke {
+        /// File id
+        file_id: String,
+
+        /// Revoke all permissions (except owner)
+        #[arg(long)]
+        all: bool,
+
+        /// Revoke specific permission
+        #[arg(long, value_name = "PERMISSION_ID")]
+        id: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -582,6 +596,20 @@ async fn main() {
                 PermissionCommand::List { file_id } => {
                     // fmt
                     permissions::list(permissions::list::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
+                }
+
+                PermissionCommand::Revoke { file_id, all, id } => {
+                    let action = if all {
+                        permissions::revoke::RevokeAction::AllExceptOwner
+                    } else if id.is_some() {
+                        permissions::revoke::RevokeAction::Id(id.unwrap_or_default())
+                    } else {
+                        permissions::revoke::RevokeAction::Anyone
+                    };
+
+                    permissions::revoke(permissions::revoke::Config { file_id, action })
                         .await
                         .unwrap_or_else(handle_error)
                 }
