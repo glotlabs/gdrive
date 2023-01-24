@@ -300,6 +300,12 @@ enum PermissionCommand {
         #[arg(long)]
         discoverable: bool,
     },
+
+    /// List permissions for a file
+    List {
+        /// File id
+        file_id: String,
+    },
 }
 
 #[tokio::main]
@@ -571,6 +577,13 @@ async fn main() {
                     })
                     .await
                     .unwrap_or_else(handle_error)
+                }
+
+                PermissionCommand::List { file_id } => {
+                    // fmt
+                    permissions::list(permissions::list::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
             }
         }

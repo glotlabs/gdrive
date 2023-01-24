@@ -127,6 +127,7 @@ pub fn prepare_fields(file: &google_drive3::api::File, config: &DisplayConfig) -
     ]
 }
 
+// TODO: move to common
 pub fn format_bool(b: bool) -> String {
     if b {
         String::from("True")
