@@ -4,10 +4,12 @@ pub mod app_config;
 pub mod common;
 pub mod files;
 pub mod hub;
+pub mod permissions;
 pub mod version;
 
 use clap::{Parser, Subcommand};
 use common::delegate::ChunkSize;
+use common::permission;
 use files::list::ListQuery;
 use files::list::ListSortOrder;
 use mime::Mime;
@@ -35,6 +37,12 @@ enum Command {
     Files {
         #[command(subcommand)]
         command: FileCommand,
+    },
+
+    /// Commands for managing file permissions
+    Permissions {
+        #[command(subcommand)]
+        command: PermissionCommand,
     },
 
     /// Print version information
@@ -262,6 +270,35 @@ enum FileCommand {
         /// Overwrite existing files
         #[arg(long)]
         overwrite: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum PermissionCommand {
+    /// Grant permission to file
+    Share {
+        /// File id
+        file_id: String,
+
+        /// The role granted by this permission. Allowed values are: owner, organizer, fileOrganizer, writer, commenter, reader
+        #[arg(long, default_value_t = permission::Role::default())]
+        role: permission::Role,
+
+        /// The type of the grantee. Valid values are: user, group, domain, anyone
+        #[arg(long, default_value_t = permission::Type::default())]
+        type_: permission::Type,
+
+        /// Email address. Required for user and group type
+        #[arg(long)]
+        email: Option<String>,
+
+        /// Domain. Required for domain type
+        #[arg(long)]
+        domain: Option<String>,
+
+        /// Whether the permission allows the file to be discovered through search. This is only applicable for permissions of type domain or anyone
+        #[arg(long)]
+        discoverable: bool,
     },
 }
 
@@ -506,6 +543,31 @@ async fn main() {
                         file_id,
                         file_path,
                         existing_file_action,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
+                }
+            }
+        }
+
+        Command::Permissions { command } => {
+            match command {
+                PermissionCommand::Share {
+                    file_id,
+                    role,
+                    type_,
+                    discoverable,
+                    email,
+                    domain,
+                } => {
+                    // fmt
+                    permissions::share(permissions::share::Config {
+                        file_id,
+                        role,
+                        type_,
+                        discoverable,
+                        email,
+                        domain,
                     })
                     .await
                     .unwrap_or_else(handle_error)
