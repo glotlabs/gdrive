@@ -317,6 +317,14 @@ enum PermissionCommand {
     List {
         /// File id
         file_id: String,
+
+        /// Don't print header
+        #[arg(long)]
+        skip_header: bool,
+
+        /// Field separator
+        #[arg(long, default_value_t = String::from("\t"))]
+        field_separator: String,
     },
 
     /// Revoke permissions for a file. If no other options are specified, the 'anyone' permission will be revoked
@@ -611,11 +619,19 @@ async fn main() {
                     .unwrap_or_else(handle_error)
                 }
 
-                PermissionCommand::List { file_id } => {
+                PermissionCommand::List {
+                    file_id,
+                    skip_header,
+                    field_separator,
+                } => {
                     // fmt
-                    permissions::list(permissions::list::Config { file_id })
-                        .await
-                        .unwrap_or_else(handle_error)
+                    permissions::list(permissions::list::Config {
+                        file_id,
+                        skip_header,
+                        field_separator,
+                    })
+                    .await
+                    .unwrap_or_else(handle_error)
                 }
 
                 PermissionCommand::Revoke { file_id, all, id } => {

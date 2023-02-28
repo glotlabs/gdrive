@@ -13,6 +13,8 @@ use std::io;
 #[derive(Clone, Debug)]
 pub struct Config {
     pub file_id: String,
+    pub skip_header: bool,
+    pub field_separator: String,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -27,12 +29,12 @@ pub async fn list(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::ListPermissions)?;
 
-    print_permissions_table(permissions);
+    print_permissions_table(&config, permissions);
 
     Ok(())
 }
 
-fn print_permissions_table(permissions: Vec<google_drive3::api::Permission>) {
+fn print_permissions_table(config: &Config, permissions: Vec<google_drive3::api::Permission>) {
     let mut values: Vec<[String; 6]> = vec![];
 
     for permission in permissions {
@@ -51,7 +53,14 @@ fn print_permissions_table(permissions: Vec<google_drive3::api::Permission>) {
         values,
     };
 
-    let _ = table::write(io::stdout(), table, &table::DisplayConfig::default());
+    let _ = table::write(
+        io::stdout(),
+        table,
+        &table::DisplayConfig {
+            skip_header: config.skip_header,
+            separator: config.field_separator.clone(),
+        },
+    );
 }
 
 pub async fn list_permissions(
