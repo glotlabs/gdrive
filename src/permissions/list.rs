@@ -1,8 +1,8 @@
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
-use crate::common::file_table;
-use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
+use crate::common::table;
+use crate::common::table::Table;
 use crate::files;
 use crate::hub::Hub;
 use std::error;
@@ -46,13 +46,12 @@ fn print_permissions_table(permissions: Vec<google_drive3::api::Permission>) {
         ])
     }
 
-    // TODO: rename to Table or something
-    let table = FileTable {
+    let table = Table {
         header: ["Id", "Type", "Role", "Email", "Domain", "Discoverable"],
         values,
     };
 
-    let _ = file_table::write(io::stdout(), table, &file_table::DisplayConfig::default());
+    let _ = table::write(io::stdout(), table, &table::DisplayConfig::default());
 }
 
 pub async fn list_permissions(

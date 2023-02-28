@@ -1,7 +1,7 @@
 use crate::common::drive_file;
-use crate::common::file_table;
-use crate::common::file_table::FileTable;
 use crate::common::hub_helper;
+use crate::common::table;
+use crate::common::table::Table;
 use crate::files;
 use crate::files::info::DisplayConfig;
 use crate::hub::Hub;
@@ -55,15 +55,15 @@ pub async fn list(config: Config) -> Result<(), Error> {
         ])
     }
 
-    let table = FileTable {
+    let table = Table {
         header: ["Id", "Name", "Type", "Size", "Created"],
         values,
     };
 
-    let _ = file_table::write(
+    let _ = table::write(
         io::stdout(),
         table,
-        &file_table::DisplayConfig {
+        &table::DisplayConfig {
             skip_header: config.skip_header,
             separator: config.field_separator,
         },

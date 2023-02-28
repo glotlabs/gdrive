@@ -3,7 +3,7 @@ use std::io;
 use std::io::Write;
 use tabwriter::TabWriter;
 
-pub struct FileTable<H: Display, V: Display, const COLUMNS: usize> {
+pub struct Table<H: Display, V: Display, const COLUMNS: usize> {
     pub header: [H; COLUMNS],
     pub values: Vec<[V; COLUMNS]>,
 }
@@ -25,7 +25,7 @@ impl Default for DisplayConfig {
 
 pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(
     writer: W,
-    table: FileTable<H, V, COLUMNS>,
+    table: Table<H, V, COLUMNS>,
     config: &DisplayConfig,
 ) -> Result<(), io::Error> {
     let mut tw = TabWriter::new(writer).padding(3);
