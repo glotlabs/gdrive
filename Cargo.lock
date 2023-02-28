@@ -405,7 +405,7 @@ dependencies = [
 
 [[package]]
 name = "gdrive"
-version = "3.6.0"
+version = "3.7.0"
 dependencies = [
  "async-recursion",
  "bytes",
