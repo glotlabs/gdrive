@@ -118,6 +118,10 @@ enum FileCommand {
         /// Don't print header
         #[arg(long)]
         skip_header: bool,
+
+        /// Show full file name without truncating
+        #[arg(long)]
+        full_name: bool,
     },
 
     /// Download file
@@ -403,6 +407,7 @@ async fn main() {
                     order_by,
                     parent,
                     skip_header,
+                    full_name,
                 } => {
                     let q = parent
                         .map(|folder_id| ListQuery::FilesInFolder { folder_id })
@@ -413,6 +418,7 @@ async fn main() {
                         order_by,
                         max_files: max,
                         skip_header,
+                        truncate_name: !full_name,
                     })
                     .await
                     .unwrap_or_else(handle_error)

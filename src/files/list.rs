@@ -20,6 +20,7 @@ pub struct Config {
     pub order_by: ListSortOrder,
     pub max_files: usize,
     pub skip_header: bool,
+    pub truncate_name: bool,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -27,8 +28,8 @@ pub async fn list(config: Config) -> Result<(), Error> {
     let files = list_files(
         &hub,
         &ListFilesConfig {
-            query: config.query,
-            order_by: config.order_by,
+            query: config.query.clone(),
+            order_by: config.order_by.clone(),
             max_files: min(config.max_files, MAX_PAGE_SIZE),
         },
     )
@@ -38,12 +39,11 @@ pub async fn list(config: Config) -> Result<(), Error> {
 
     for file in files {
         let file_type = simplified_file_type(&file);
+        let file_name = format_file_name(&config, &file);
 
         values.push([
             file.id.unwrap_or_default(),
-            file.name
-                .map(|s| truncate_middle(&s, 41))
-                .unwrap_or_default(),
+            file_name,
             file_type,
             file.size
                 .map(|bytes| files::info::format_bytes(bytes, &DisplayConfig::default()))
@@ -223,6 +223,18 @@ fn simplified_file_type(file: &google_drive3::api::File) -> String {
         String::from("regular")
     } else {
         String::from("document")
+    }
+}
+
+fn format_file_name(config: &Config, file: &google_drive3::api::File) -> String {
+    let file_name = file.name.as_ref();
+
+    if config.truncate_name {
+        file_name
+            .map(|s| truncate_middle(&s, 41))
+            .unwrap_or_default()
+    } else {
+        file_name.map(|s| s.to_string()).unwrap_or_default()
     }
 }
 
