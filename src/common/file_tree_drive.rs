@@ -107,7 +107,7 @@ impl Folder {
 
         let files = list::list_files(
             hub,
-            &list::Config {
+            &list::ListFilesConfig {
                 query: ListQuery::FilesInFolder { folder_id: file_id },
                 order_by: Default::default(),
                 max_files: usize::MAX,

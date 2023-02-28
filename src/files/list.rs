@@ -19,11 +19,20 @@ pub struct Config {
     pub query: ListQuery,
     pub order_by: ListSortOrder,
     pub max_files: usize,
+    pub skip_header: bool,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
-    let files = list_files(&hub, &config).await?;
+    let files = list_files(
+        &hub,
+        &ListFilesConfig {
+            query: config.query,
+            order_by: config.order_by,
+            max_files: min(config.max_files, MAX_PAGE_SIZE),
+        },
+    )
+    .await?;
 
     let mut values: Vec<[String; 5]> = vec![];
 
@@ -50,14 +59,26 @@ pub async fn list(config: Config) -> Result<(), Error> {
         values,
     };
 
-    let _ = file_table::write(io::stdout(), table, &file_table::DisplayConfig::default());
+    let _ = file_table::write(
+        io::stdout(),
+        table,
+        &file_table::DisplayConfig {
+            skip_header: config.skip_header,
+        },
+    );
 
     Ok(())
 }
 
+pub struct ListFilesConfig {
+    pub query: ListQuery,
+    pub order_by: ListSortOrder,
+    pub max_files: usize,
+}
+
 pub async fn list_files(
     hub: &Hub,
-    config: &Config,
+    config: &ListFilesConfig,
 ) -> Result<Vec<google_drive3::api::File>, Error> {
     let mut collected_files: Vec<google_drive3::api::File> = vec![];
     let mut next_page_token: Option<String> = None;

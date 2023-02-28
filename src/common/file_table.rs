@@ -10,7 +10,7 @@ pub struct FileTable<H: Display, V: Display, const COLUMNS: usize> {
 
 #[derive(Debug, Clone, Default)]
 pub struct DisplayConfig {
-    skip_header: bool,
+    pub skip_header: bool,
 }
 
 pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(

@@ -114,6 +114,10 @@ enum FileCommand {
         /// List files in a specific folder
         #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<String>,
+
+        /// Don't print header
+        #[arg(long)]
+        skip_header: bool,
     },
 
     /// Download file
@@ -398,6 +402,7 @@ async fn main() {
                     query,
                     order_by,
                     parent,
+                    skip_header,
                 } => {
                     let q = parent
                         .map(|folder_id| ListQuery::FilesInFolder { folder_id })
@@ -407,6 +412,7 @@ async fn main() {
                         query: q,
                         order_by,
                         max_files: max,
+                        skip_header,
                     })
                     .await
                     .unwrap_or_else(handle_error)
