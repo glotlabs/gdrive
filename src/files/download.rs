@@ -14,6 +14,8 @@ use std::fmt::Formatter;
 use std::fs;
 use std::fs::File;
 use std::io;
+use std::io::BufReader;
+use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -119,12 +121,16 @@ pub async fn download_directory(
             .map_err(|err| Error::CreateDirectory(abs_folder_path, err))?;
 
         for file in folder.files() {
+            let file_path = file.relative_path();
+            let abs_file_path = root_path.join(&file_path);
+
+            if local_file_is_identical(&abs_file_path, &file) {
+                continue;
+            }
+
             let body = download_file(&hub, &file.drive_id)
                 .await
                 .map_err(Error::DownloadFile)?;
-
-            let file_path = file.relative_path();
-            let abs_file_path = root_path.join(&file_path);
 
             println!("Downloading file '{}'", file_path.display());
             save_body_to_file(body, &abs_file_path, file.md5.clone()).await?;
@@ -296,4 +302,43 @@ fn err_if_md5_mismatch(expected: Option<String>, actual: String) -> Result<(), E
             actual,
         })
     }
+}
+
+fn local_file_is_identical(path: &PathBuf, file: &file_tree_drive::File) -> bool {
+    if path.exists() {
+        let file_md5 = compute_md5_from_path(path).unwrap_or_else(|err| {
+            eprintln!(
+                "Warning: Error while computing md5 of '{}': {}",
+                path.display(),
+                err
+            );
+
+            String::new()
+        });
+
+        file.md5.clone().map(|md5| md5 == file_md5).unwrap_or(false)
+    } else {
+        false
+    }
+}
+
+fn compute_md5_from_path(path: &PathBuf) -> Result<String, io::Error> {
+    let input = File::open(path)?;
+    let reader = BufReader::new(input);
+    compute_md5_from_reader(reader)
+}
+
+fn compute_md5_from_reader<R: Read>(mut reader: R) -> Result<String, io::Error> {
+    let mut context = md5::Context::new();
+    let mut buffer = [0; 102400];
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        context.consume(&buffer[..count]);
+    }
+
+    Ok(format!("{:x}", context.compute()))
 }
