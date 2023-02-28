@@ -122,6 +122,10 @@ enum FileCommand {
         /// Show full file name without truncating
         #[arg(long)]
         full_name: bool,
+
+        /// Field separator
+        #[arg(long, default_value_t = String::from("\t"))]
+        field_separator: String,
     },
 
     /// Download file
@@ -408,6 +412,7 @@ async fn main() {
                     parent,
                     skip_header,
                     full_name,
+                    field_separator,
                 } => {
                     let q = parent
                         .map(|folder_id| ListQuery::FilesInFolder { folder_id })
@@ -419,6 +424,7 @@ async fn main() {
                         max_files: max,
                         skip_header,
                         truncate_name: !full_name,
+                        field_separator,
                     })
                     .await
                     .unwrap_or_else(handle_error)

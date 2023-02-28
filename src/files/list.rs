@@ -21,6 +21,7 @@ pub struct Config {
     pub max_files: usize,
     pub skip_header: bool,
     pub truncate_name: bool,
+    pub field_separator: String,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -64,6 +65,7 @@ pub async fn list(config: Config) -> Result<(), Error> {
         table,
         &file_table::DisplayConfig {
             skip_header: config.skip_header,
+            separator: config.field_separator,
         },
     );
 
