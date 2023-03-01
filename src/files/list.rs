@@ -100,6 +100,8 @@ pub async fn list_files(
             .q(&config.query.to_string())
             .order_by(&config.order_by.to_string())
             .add_scope(google_drive3::api::Scope::Full)
+            .supports_all_drives(true)
+            .include_items_from_all_drives(true)
             .param(
                 "fields",
                 "files(id,name,md5Checksum,mimeType,size,createdTime,parents),nextPageToken",
