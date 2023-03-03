@@ -2,6 +2,7 @@ pub mod about;
 pub mod account;
 pub mod app_config;
 pub mod common;
+pub mod drives;
 pub mod files;
 pub mod hub;
 pub mod permissions;
@@ -13,7 +14,8 @@ use common::permission;
 use files::list::ListQuery;
 use files::list::ListSortOrder;
 use mime::Mime;
-use std::{error::Error, path::PathBuf};
+use std::error::Error;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None, disable_version_flag = true)]
@@ -31,6 +33,12 @@ enum Command {
     Account {
         #[command(subcommand)]
         command: AccountCommand,
+    },
+
+    /// Commands for managing drives
+    Drives {
+        #[command(subcommand)]
+        command: DriveCommand,
     },
 
     /// Commands for managing files
@@ -82,6 +90,20 @@ enum AccountCommand {
     Import {
         /// Path to archive
         file_path: PathBuf,
+    },
+}
+
+#[derive(Subcommand)]
+enum DriveCommand {
+    /// List drives
+    List {
+        /// Don't print header
+        #[arg(long)]
+        skip_header: bool,
+
+        /// Field separator
+        #[arg(long, default_value_t = String::from("\t"))]
+        field_separator: String,
     },
 }
 
@@ -395,6 +417,21 @@ async fn main() {
                     })
                     .unwrap_or_else(handle_error)
                 }
+            }
+        }
+
+        Command::Drives { command } => {
+            // fmt
+            match command {
+                DriveCommand::List {
+                    skip_header,
+                    field_separator,
+                } => drives::list(drives::list::Config {
+                    skip_header,
+                    field_separator,
+                })
+                .await
+                .unwrap_or_else(handle_error),
             }
         }
 
