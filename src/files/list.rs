@@ -129,6 +129,9 @@ pub async fn list_files(
 pub enum ListQuery {
     #[default]
     RootNotTrashed,
+    FilesOnDrive {
+        drive_id: String,
+    },
     FilesInFolder {
         folder_id: String,
     },
@@ -153,6 +156,10 @@ impl Display for ListQuery {
         match self {
             ListQuery::RootNotTrashed => {
                 write!(f, "'root' in parents and trashed = false")
+            }
+
+            ListQuery::FilesOnDrive { drive_id } => {
+                write!(f, "'{}' in parents and trashed = false", drive_id)
             }
 
             ListQuery::FilesInFolder { folder_id } => {

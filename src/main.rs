@@ -137,6 +137,10 @@ enum FileCommand {
         #[arg(long, value_name = "DIRECTORY_ID")]
         parent: Option<String>,
 
+        /// List files on a shared drive
+        #[arg(long, value_name = "DRIVE_ID")]
+        drive: Option<String>,
+
         /// Don't print header
         #[arg(long)]
         skip_header: bool,
@@ -455,13 +459,17 @@ async fn main() {
                     query,
                     order_by,
                     parent,
+                    drive,
                     skip_header,
                     full_name,
                     field_separator,
                 } => {
-                    let q = parent
-                        .map(|folder_id| ListQuery::FilesInFolder { folder_id })
-                        .unwrap_or(query);
+                    let parent_query =
+                        parent.map(|folder_id| ListQuery::FilesInFolder { folder_id });
+
+                    let drive_query = drive.map(|drive_id| ListQuery::FilesOnDrive { drive_id });
+
+                    let q = parent_query.or(drive_query).unwrap_or(query);
 
                     files::list(files::list::Config {
                         query: q,
