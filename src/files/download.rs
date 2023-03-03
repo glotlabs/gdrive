@@ -330,7 +330,7 @@ fn compute_md5_from_path(path: &PathBuf) -> Result<String, io::Error> {
 
 fn compute_md5_from_reader<R: Read>(mut reader: R) -> Result<String, io::Error> {
     let mut context = md5::Context::new();
-    let mut buffer = [0; 102400];
+    let mut buffer = [0; 4096];
 
     loop {
         let count = reader.read(&mut buffer)?;
