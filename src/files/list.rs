@@ -232,6 +232,8 @@ fn simplified_file_type(file: &google_drive3::api::File) -> String {
         String::from("folder")
     } else if drive_file::is_binary(file) {
         String::from("regular")
+    } else if drive_file::is_shortcut(file) {
+        String::from("shortcut")
     } else {
         String::from("document")
     }
