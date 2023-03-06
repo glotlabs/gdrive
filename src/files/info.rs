@@ -39,7 +39,7 @@ pub async fn get_file(
     let (_, file) = hub
         .files()
         .get(file_id)
-        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink")
+        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink,shortcutDetails(targetId,targetMimeType)")
         .supports_all_drives(true)
         .add_scope(google_drive3::api::Scope::Full)
         .doit()
@@ -67,22 +67,6 @@ pub struct Field {
 }
 
 pub fn prepare_fields(file: &google_drive3::api::File, config: &DisplayConfig) -> Vec<Field> {
-    // Id: 0B3X9GlR6EmbnNTk0SkV0bm5Hd0E
-    // Name: gdrive-osx-x64
-    // Path: gdrive-bin/gdrive-osx-x64
-    // Mime: application/octet-stream
-    // Size: 8.3 MB
-    // Created: 2016-02-21 20:47:04
-    // Modified: 2016-02-21 20:47:04
-    // Md5sum: b607f29231a3b2d16098c4212516470f
-    // Shared: True
-    // Parents: 0B3X9GlR6EmbnY1RLVTk5VUtOVkk
-    // ViewUrl: https://drive.google.com/file/d/0B3X9GlR6EmbnNTk0SkV0bm5Hd0E/view?usp=drivesdk
-    // DownloadUrl: https://docs.google.com/uc?id=0B3X9GlR6EmbnNTk0SkV0bm5Hd0E&export=download
-
-    // TODO: Path
-    // TODO: DownloadUrl
-
     vec![
         Field {
             name: String::from("Id"),

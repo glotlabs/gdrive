@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 pub const MIME_TYPE_DRIVE_FOLDER: &str = "application/vnd.google-apps.folder";
 pub const MIME_TYPE_DRIVE_DOCUMENT: &str = "application/vnd.google-apps.document";
+pub const MIME_TYPE_DRIVE_SHORTCUT: &str = "application/vnd.google-apps.shortcut";
 pub const MIME_TYPE_DRIVE_SPREADSHEET: &str = "application/vnd.google-apps.spreadsheet";
 pub const MIME_TYPE_DRIVE_PRESENTATION: &str = "application/vnd.google-apps.presentation";
 
@@ -283,4 +284,8 @@ pub fn is_directory(file: &google_drive3::api::File) -> bool {
 
 pub fn is_binary(file: &google_drive3::api::File) -> bool {
     file.md5_checksum != None
+}
+
+pub fn is_shortcut(file: &google_drive3::api::File) -> bool {
+    file.mime_type == Some(String::from(MIME_TYPE_DRIVE_SHORTCUT))
 }

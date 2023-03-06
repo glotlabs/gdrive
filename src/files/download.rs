@@ -5,6 +5,7 @@ use crate::common::hub_helper;
 use crate::common::md5_writer::Md5Writer;
 use crate::files;
 use crate::hub::Hub;
+use async_recursion::async_recursion;
 use futures::stream::StreamExt;
 use google_drive3::hyper;
 use human_bytes::human_bytes;
@@ -53,6 +54,7 @@ pub enum ExistingFileAction {
     Overwrite,
 }
 
+#[async_recursion]
 pub async fn download(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
@@ -63,7 +65,17 @@ pub async fn download(config: Config) -> Result<(), Error> {
     err_if_file_exists(&file, &config)?;
     err_if_directory(&file, &config)?;
 
-    if drive_file::is_directory(&file) {
+    if drive_file::is_shortcut(&file) {
+        let target_file_id = file.shortcut_details.and_then(|details| details.target_id);
+
+        err_if_shortcut_target_is_missing(&target_file_id)?;
+
+        download(Config {
+            file_id: target_file_id.unwrap_or_default(),
+            ..config
+        })
+        .await?;
+    } else if drive_file::is_directory(&file) {
         download_directory(&hub, &file, &config).await?;
     } else {
         download_regular(&hub, &file, &config).await?;
@@ -179,6 +191,7 @@ pub enum Error {
     DestinationPathDoesNotExist(PathBuf),
     DestinationPathNotADirectory(PathBuf),
     CanonicalizeDestinationPath(PathBuf, io::Error),
+    MissingShortcutTarget,
 }
 
 impl error::Error for Error {}
@@ -236,6 +249,7 @@ impl Display for Error {
                 path.display(),
                 err
             ),
+            Error::MissingShortcutTarget => write!(f, "Shortcut does not have a target"),
         }
     }
 }
@@ -286,6 +300,14 @@ fn err_if_directory(file: &google_drive3::api::File, config: &Config) -> Result<
             .map(|s| s.to_string())
             .unwrap_or_default();
         Err(Error::IsDirectory(name))
+    } else {
+        Ok(())
+    }
+}
+
+fn err_if_shortcut_target_is_missing(target_id: &Option<String>) -> Result<(), Error> {
+    if target_id.is_none() {
+        Err(Error::MissingShortcutTarget)
     } else {
         Ok(())
     }
