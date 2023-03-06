@@ -163,6 +163,10 @@ enum FileCommand {
         #[arg(long)]
         overwrite: bool,
 
+        /// Follow shortcut and download target file (does not work with recursive download)
+        #[arg(long)]
+        follow_shortcuts: bool,
+
         /// Download directories
         #[arg(long)]
         recursive: bool,
@@ -486,6 +490,7 @@ async fn main() {
                 FileCommand::Download {
                     file_id,
                     overwrite,
+                    follow_shortcuts,
                     recursive,
                     destination,
                 } => {
@@ -498,6 +503,7 @@ async fn main() {
                     files::download(files::download::Config {
                         file_id,
                         existing_file_action,
+                        follow_shortcuts,
                         download_directories: recursive,
                         destination_root: destination,
                     })

@@ -23,6 +23,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub file_id: String,
     pub existing_file_action: ExistingFileAction,
+    pub follow_shortcuts: bool,
     pub download_directories: bool,
     pub destination_root: Option<PathBuf>,
 }
@@ -64,6 +65,7 @@ pub async fn download(config: Config) -> Result<(), Error> {
 
     err_if_file_exists(&file, &config)?;
     err_if_directory(&file, &config)?;
+    err_if_shortcut(&file, &config)?;
 
     if drive_file::is_shortcut(&file) {
         let target_file_id = file.shortcut_details.and_then(|details| details.target_id);
@@ -192,6 +194,7 @@ pub enum Error {
     DestinationPathNotADirectory(PathBuf),
     CanonicalizeDestinationPath(PathBuf, io::Error),
     MissingShortcutTarget,
+    IsShortcut(String),
 }
 
 impl error::Error for Error {}
@@ -250,6 +253,11 @@ impl Display for Error {
                 err
             ),
             Error::MissingShortcutTarget => write!(f, "Shortcut does not have a target"),
+            Error::IsShortcut(name) => write!(
+                f,
+                "'{}' is a shortcut, use --follow-shortcuts to download the file it points to",
+                name
+            ),
         }
     }
 }
@@ -300,6 +308,19 @@ fn err_if_directory(file: &google_drive3::api::File, config: &Config) -> Result<
             .map(|s| s.to_string())
             .unwrap_or_default();
         Err(Error::IsDirectory(name))
+    } else {
+        Ok(())
+    }
+}
+
+fn err_if_shortcut(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
+    if drive_file::is_shortcut(file) && !config.follow_shortcuts {
+        let name = file
+            .name
+            .as_ref()
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        Err(Error::IsShortcut(name))
     } else {
         Ok(())
     }
