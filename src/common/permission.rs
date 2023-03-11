@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub enum Role {
     Owner,
     Organizer,
@@ -41,7 +41,7 @@ impl FromStr for Role {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub enum Type {
     User,
     Group,
@@ -66,6 +66,15 @@ impl Type {
             Type::Group => false,
             Type::Domain => true,
             Type::Anyone => false,
+        }
+    }
+
+    pub fn supports_file_discovery(&self) -> bool {
+        match self {
+            Type::User => false,
+            Type::Group => false,
+            Type::Domain => true,
+            Type::Anyone => true,
         }
     }
 }

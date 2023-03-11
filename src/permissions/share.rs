@@ -18,6 +18,20 @@ pub struct Config {
     pub domain: Option<String>,
 }
 
+impl Config {
+    fn allow_file_discovery(&self) -> Option<bool> {
+        if self.type_.supports_file_discovery() {
+            Some(self.discoverable)
+        } else {
+            None
+        }
+    }
+
+    fn requires_ownership_transfer(&self) -> bool {
+        self.role == permission::Role::Owner
+    }
+}
+
 pub async fn share(config: Config) -> Result<(), Error> {
     err_if_missing_email(&config)?;
     err_if_missing_domain(&config)?;
@@ -48,7 +62,7 @@ pub async fn create_permission(
     let new_permission = google_drive3::api::Permission {
         role: Some(config.role.to_string()),
         type_: Some(config.type_.to_string()),
-        allow_file_discovery: Some(config.discoverable),
+        allow_file_discovery: config.allow_file_discovery(),
         email_address: config.email.clone(),
         domain: config.domain.clone(),
         ..google_drive3::api::Permission::default()
@@ -61,6 +75,7 @@ pub async fn create_permission(
             "fields",
             "id,role,type,domain,emailAddress,allowFileDiscovery",
         )
+        .transfer_ownership(config.requires_ownership_transfer())
         .add_scope(google_drive3::api::Scope::Full)
         .delegate(&mut delegate)
         .supports_all_drives(true)
