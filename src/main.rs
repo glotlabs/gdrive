@@ -174,6 +174,10 @@ enum FileCommand {
         /// Path where the file/directory should be downloaded to
         #[arg(long, value_name = "PATH")]
         destination: Option<PathBuf>,
+
+        /// Write file to stdout
+        #[arg(long)]
+        stdout: bool,
     },
 
     /// Upload file
@@ -493,6 +497,7 @@ async fn main() {
                     follow_shortcuts,
                     recursive,
                     destination,
+                    stdout,
                 } => {
                     let existing_file_action = if overwrite {
                         files::download::ExistingFileAction::Overwrite
@@ -500,12 +505,20 @@ async fn main() {
                         files::download::ExistingFileAction::Abort
                     };
 
+                    let dst = if stdout {
+                        files::download::Destination::Stdout
+                    } else if let Some(path) = destination {
+                        files::download::Destination::Path(path)
+                    } else {
+                        files::download::Destination::CurrentDir
+                    };
+
                     files::download(files::download::Config {
                         file_id,
                         existing_file_action,
                         follow_shortcuts,
                         download_directories: recursive,
-                        destination_root: destination,
+                        destination: dst,
                     })
                     .await
                     .unwrap_or_else(handle_error)

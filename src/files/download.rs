@@ -25,28 +25,44 @@ pub struct Config {
     pub existing_file_action: ExistingFileAction,
     pub follow_shortcuts: bool,
     pub download_directories: bool,
-    pub destination_root: Option<PathBuf>,
+    pub destination: Destination,
 }
 
 impl Config {
     fn canonical_destination_root(&self) -> Result<PathBuf, Error> {
-        if let Some(path) = &self.destination_root {
-            if !path.exists() {
-                Err(Error::DestinationPathDoesNotExist(path.clone()))
-            } else if !path.is_dir() {
-                Err(Error::DestinationPathNotADirectory(path.clone()))
-            } else {
-                path.canonicalize()
-                    .map_err(|err| Error::CanonicalizeDestinationPath(path.clone(), err))
+        match &self.destination {
+            Destination::CurrentDir => {
+                let current_path = PathBuf::from(".");
+                let canonical_current_path = current_path
+                    .canonicalize()
+                    .map_err(|err| Error::CanonicalizeDestinationPath(current_path.clone(), err))?;
+                Ok(canonical_current_path)
             }
-        } else {
-            let current_path = PathBuf::from(".");
-            let canonical_current_path = current_path
-                .canonicalize()
-                .map_err(|err| Error::CanonicalizeDestinationPath(current_path.clone(), err))?;
-            Ok(canonical_current_path)
+
+            Destination::Path(path) => {
+                if !path.exists() {
+                    Err(Error::DestinationPathDoesNotExist(path.clone()))
+                } else if !path.is_dir() {
+                    Err(Error::DestinationPathNotADirectory(path.clone()))
+                } else {
+                    path.canonicalize()
+                        .map_err(|err| Error::CanonicalizeDestinationPath(path.clone(), err))
+                }
+            }
+
+            Destination::Stdout => {
+                // fmt
+                Err(Error::StdoutNotValidDestination)
+            }
         }
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Destination {
+    CurrentDir,
+    Path(PathBuf),
+    Stdout,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -91,17 +107,26 @@ pub async fn download_regular(
     file: &google_drive3::api::File,
     config: &Config,
 ) -> Result<(), Error> {
-    let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
-    let root_path = config.canonical_destination_root()?;
-    let abs_file_path = root_path.join(&file_name);
-
     let body = download_file(&hub, &config.file_id)
         .await
         .map_err(Error::DownloadFile)?;
 
-    println!("Downloading {}", file_name);
-    save_body_to_file(body, &abs_file_path, file.md5_checksum.clone()).await?;
-    println!("Successfully downloaded {}", file_name);
+    match &config.destination {
+        Destination::Stdout => {
+            // fmt
+            save_body_to_stdout(body).await?;
+        }
+
+        _ => {
+            let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
+            let root_path = config.canonical_destination_root()?;
+            let abs_file_path = root_path.join(&file_name);
+
+            println!("Downloading {}", file_name);
+            save_body_to_file(body, &abs_file_path, file.md5_checksum.clone()).await?;
+            println!("Successfully downloaded {}", file_name);
+        }
+    }
 
     Ok(())
 }
@@ -195,6 +220,7 @@ pub enum Error {
     CanonicalizeDestinationPath(PathBuf, io::Error),
     MissingShortcutTarget,
     IsShortcut(String),
+    StdoutNotValidDestination,
 }
 
 impl error::Error for Error {}
@@ -258,6 +284,10 @@ impl Display for Error {
                 "'{}' is a shortcut, use --follow-shortcuts to download the file it points to",
                 name
             ),
+            Error::StdoutNotValidDestination => write!(
+                f,
+                "Stdout is not a valid destination for this combination of options"
+            ),
         }
     }
 }
@@ -288,15 +318,41 @@ pub async fn save_body_to_file(
     fs::rename(&tmp_file_path, &file_path).map_err(Error::RenameFile)
 }
 
+// TODO: move to common
+pub async fn save_body_to_stdout(mut body: hyper::Body) -> Result<(), Error> {
+    let mut stdout = io::stdout();
+
+    // Read chunks from stream and write to stdout
+    while let Some(chunk_result) = body.next().await {
+        let chunk = chunk_result.map_err(Error::ReadChunk)?;
+        stdout.write_all(&chunk).map_err(Error::WriteChunk)?;
+    }
+
+    Ok(())
+}
+
 fn err_if_file_exists(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
     let file_name = file.name.clone().ok_or(Error::MissingFileName)?;
-    let root_path = config.canonical_destination_root()?;
-    let file_path = root_path.join(&file_name);
 
-    if file_path.exists() && config.existing_file_action == ExistingFileAction::Abort {
-        Err(Error::FileExists(file_path.clone()))
-    } else {
-        Ok(())
+    let file_path = match &config.destination {
+        Destination::CurrentDir => Some(PathBuf::from(".").join(file_name)),
+        Destination::Path(path) => Some(path.join(file_name)),
+        Destination::Stdout => None,
+    };
+
+    match file_path {
+        Some(path) => {
+            if path.exists() && config.existing_file_action == ExistingFileAction::Abort {
+                Err(Error::FileExists(path.clone()))
+            } else {
+                Ok(())
+            }
+        }
+
+        None => {
+            // fmt
+            Ok(())
+        }
     }
 }
 
