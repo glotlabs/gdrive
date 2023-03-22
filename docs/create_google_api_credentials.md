@@ -3,14 +3,14 @@
 Google has made it really easy to create api credentials for own use, just follow these few steps:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select an existing) from the meny [[screenshot]](https://user-images.githubusercontent.com/720405/210136984-7ed0eb00-f940-47c2-a1b7-95147e0f6ed8.png)
+2. Create a new project (or select an existing) from the menu [[screenshot]](https://user-images.githubusercontent.com/720405/210136984-7ed0eb00-f940-47c2-a1b7-95147e0f6ed8.png)
 3. Search for `drive api` in the search bar and select `Google drive api` under the marketplace section [[screenshot]](https://user-images.githubusercontent.com/720405/210137041-57633760-eb57-4c87-bacf-a9850c363a63.png)
 4. Click to enable `Google Drive API` button [[screenshot]](https://user-images.githubusercontent.com/720405/210137243-3f7c1ea6-519b-4c50-afea-577e19fe543d.png)
 5. Click on the `Credentials` menu item
 6. Click on the `Configure Consent Screen` button [[screenshot]](https://user-images.githubusercontent.com/720405/210137298-9c9eb3d1-9420-4bdb-bd98-4e6e778c8ed5.png)
 7. Select `External` user type (Internal is only available for workspace subscribers) [[screenshot]](https://user-images.githubusercontent.com/720405/210137317-de4b8bea-235d-498d-b78d-b0c37dd96717.png)
 8. Click on the `Create` button
-9. Fill out the fields `App name`, `User support email`, `Developer contact information` with your information (keep the other fields empty) [[screenshot]](https://user-images.githubusercontent.com/720405/210137365-09aa2294-8984-45ef-9a29-7f485cfbe7ac.png)
+9. Fill out the fields `App name`, `User support email`, `Developer contact information` with your information; you will need to put the Project ID into the app name (keep the other fields empty) [[screenshot]](https://user-images.githubusercontent.com/720405/210137365-09aa2294-8984-45ef-9a29-7f485cfbe7ac.png)
 10. Click the `Save and continue` button. If you get `An error saving your app has occurred` try changing the project name to something unique
 11. Click the `Add or remove scopes` button
 12. Search for `google drive api`
