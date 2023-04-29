@@ -30,7 +30,7 @@ you will help support:
 
 - Download the latest binary from [the release section](https://github.com/glotlabs/gdrive/releases)
 - Unpack and put the binary somewhere in your PATH (i.e. `/usr/local/bin` on linux and macos)
-- Note that the binary is not code signed and will cause a warning on windows and macos when running. This will be fixed later, but for now you can find a workaround via you favorite search engine.
+- Note that the binary is not code signed and will cause a warning on windows and macos when running. This will be fixed later, but for now you can find a workaround via your favorite search engine.
 
 ### Add google account to gdrive
 
