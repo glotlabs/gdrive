@@ -18,6 +18,7 @@ hyper = { version = "0.14.23", features = ["stream"] }
 md5 = "0.7.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
+mktemp = "0.5.0"
 rustc_version_runtime = "0.2.1"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.89"

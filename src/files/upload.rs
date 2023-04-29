@@ -6,6 +6,7 @@ use crate::common::file_info;
 use crate::common::file_info::FileInfo;
 use crate::common::file_tree;
 use crate::common::file_tree::FileTree;
+use crate::common::file_helper;
 use crate::common::hub_helper;
 use crate::common::id_gen::IdGen;
 use crate::files;
@@ -47,12 +48,22 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         print_chunk_info: config.print_chunk_info,
     };
 
-    err_if_directory(&config.file_path, &config)?;
+    if PathBuf::from("-") == config.file_path {
+        let tmp_file = file_helper::stdin_to_file()
+            .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
 
-    if config.file_path.is_dir() {
-        upload_directory(&hub, &config, delegate_config).await?;
+        upload_regular(&hub, &Config {
+            file_path: tmp_file.as_ref().to_path_buf(),
+            ..config
+        }, delegate_config).await?;
     } else {
-        upload_regular(&hub, &config, delegate_config).await?;
+        err_if_directory(&config.file_path, &config)?;
+
+        if config.file_path.is_dir() {
+            upload_directory(&hub, &config, delegate_config).await?;
+        } else {
+            upload_regular(&hub, &config, delegate_config).await?;
+        }
     }
 
     Ok(())

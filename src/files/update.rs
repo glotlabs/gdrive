@@ -4,6 +4,7 @@ use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_info;
 use crate::common::file_info::FileInfo;
+use crate::common::file_helper;
 use crate::common::hub_helper;
 use crate::files;
 use crate::files::info;
@@ -13,7 +14,6 @@ use mime::Mime;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -41,7 +41,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
         print_chunk_info: config.print_chunk_info,
     };
 
-    let file = fs::File::open(&config.file_path)
+    let file = file_helper::open_file(&config.file_path)
         .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
 
     let drive_file = info::get_file(&hub, &config.file_id)

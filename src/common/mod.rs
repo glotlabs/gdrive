@@ -10,3 +10,4 @@ pub mod id_gen;
 pub mod md5_writer;
 pub mod permission;
 pub mod table;
+pub mod file_helper;
