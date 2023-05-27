@@ -11,10 +11,17 @@ pub fn stdin_to_file() -> Result<Temp, io::Error> {
     Ok(tmp_file)
 }
 
-pub fn open_file(path: &PathBuf) -> Result<File, io::Error> {
-    if PathBuf::from("-") == *path {
-        File::open(stdin_to_file()?)
-    } else {
-        File::open(path)
+pub fn open_file(path: &Option<PathBuf>) -> Result<(File, PathBuf), io::Error> {
+    match path {
+        Some(path) => {
+            let file = File::open(path)?;
+            Ok((file, path.clone()))
+        },
+        None => {
+            let tmp_file = stdin_to_file()?;
+            let path = tmp_file.as_ref().to_path_buf();
+            let file = File::open(&path)?;
+            Ok((file, path))
+        }
     }
 }

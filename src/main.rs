@@ -183,7 +183,7 @@ enum FileCommand {
     /// Upload file
     Upload {
         /// Path of file to upload
-        file_path: PathBuf,
+        file_path: Option<PathBuf>,
 
         /// Force mime type [default: auto-detect]
         #[arg(long, value_name = "MIME_TYPE")]
@@ -220,7 +220,7 @@ enum FileCommand {
         file_id: String,
 
         /// Path of file to upload
-        file_path: PathBuf,
+        file_path: Option<PathBuf>,
 
         /// Force mime type [default: auto-detect]
         #[arg(long, value_name = "MIME_TYPE")]
