@@ -25,15 +25,17 @@ Google has made it really easy to create api credentials for own use, just follo
 21. Click on the `Create credentials` button in the top bar and select `OAuth client ID` [[screenshot]](https://user-images.githubusercontent.com/720405/210137498-dc9102c4-2720-466d-809a-4d8947dbb0a0.png)
 22. Select application type `Desktop app` and give a name [[screenshot]](https://user-images.githubusercontent.com/720405/210137673-d3a387ab-3bbe-4af3-81c8-7c744aed8bd5.png)
 23. Click on the `Create` button
-24. You should be presented with a Cliend Id and Client Secret [[screenshot]](https://user-images.githubusercontent.com/720405/210137709-587edb53-4703-4ad3-8941-6130f47d0547.png)
-25. Click on `OAuth consent screen`
-26. Click on `Publish app` (to prevent the token from expiring after 7 days) [[screenshot]](https://user-images.githubusercontent.com/720405/216276113-18356d78-c81c-42c1-be2b-49c9b6a6cafe.png)
-27. Click `Confirm` in the dialog
+24. You should be presented with a Cliend Id and Client Secret [[screenshot]](https://user-images.githubusercontent.com/720405/210137709-587edb53-4703-4ad3-8941-6130f47d0547.png). If you dont copy/download them now, you may find them again later.
+25. Click `OK`
+26. Click on `OAuth consent screen` menu item
+27. Click on `Publish app` (to prevent the token from expiring after 7 days) [[screenshot]](https://user-images.githubusercontent.com/720405/216276113-18356d78-c81c-42c1-be2b-49c9b6a6cafe.png)
+28. Click `Confirm` in the dialog
 
 
 Thats it!
 
 Gdrive will ask for your Client Id and Client Secret when using the `gdrive account add` command.
+Then you will be pointed to a URL, where you confirm access to your Google Drive data.
 
 
 
