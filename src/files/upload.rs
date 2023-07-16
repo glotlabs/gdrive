@@ -6,6 +6,7 @@ use crate::common::file_info;
 use crate::common::file_info::FileInfo;
 use crate::common::file_tree;
 use crate::common::file_tree::FileTree;
+use crate::common::file_helper;
 use crate::common::hub_helper;
 use crate::common::id_gen::IdGen;
 use crate::files;
@@ -23,7 +24,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub struct Config {
-    pub file_path: PathBuf,
+    pub file_path: Option<PathBuf>,
     pub mime_type: Option<Mime>,
     pub parents: Option<Vec<String>>,
     pub chunk_size: ChunkSize,
@@ -47,13 +48,26 @@ pub async fn upload(config: Config) -> Result<(), Error> {
         print_chunk_info: config.print_chunk_info,
     };
 
-    err_if_directory(&config.file_path, &config)?;
+    match &config.file_path {
+        Some(path) => {
+            err_if_directory(&path, &config)?;
 
-    if config.file_path.is_dir() {
-        upload_directory(&hub, &config, delegate_config).await?;
-    } else {
-        upload_regular(&hub, &config, delegate_config).await?;
-    }
+            if path.is_dir() {
+                upload_directory(&hub, &config, delegate_config).await?;
+            } else {
+                upload_regular(&hub, &config, delegate_config).await?;
+            }
+        },
+        None => {
+            let tmp_file = file_helper::stdin_to_file()
+                .map_err(|err| Error::OpenFile(PathBuf::from("<stdin>"), err))?;
+
+            upload_regular(&hub, &Config {
+                file_path: Some(tmp_file.as_ref().to_path_buf()),
+                ..config
+            }, delegate_config).await?;
+        }
+    };
 
     Ok(())
 }
@@ -63,13 +77,14 @@ pub async fn upload_regular(
     config: &Config,
     delegate_config: UploadDelegateConfig,
 ) -> Result<(), Error> {
-    let file = fs::File::open(&config.file_path)
-        .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
+    let file_path = config.file_path.as_ref().unwrap();
+    let file = fs::File::open(file_path)
+        .map_err(|err| Error::OpenFile(file_path.clone(), err))?;
 
     let file_info = FileInfo::from_file(
         &file,
         &file_info::Config {
-            file_path: config.file_path.clone(),
+            file_path: file_path.clone(),
             mime_type: config.mime_type.clone(),
             parents: config.parents.clone(),
         },
@@ -79,7 +94,7 @@ pub async fn upload_regular(
     let reader = std::io::BufReader::new(file);
 
     if !config.print_only_id {
-        println!("Uploading {}", config.file_path.display());
+        println!("Uploading {}", file_path.display());
     }
 
     let file = upload_file(&hub, reader, None, file_info, delegate_config)
@@ -103,7 +118,7 @@ pub async fn upload_directory(
     delegate_config: UploadDelegateConfig,
 ) -> Result<(), Error> {
     let mut ids = IdGen::new(hub, &delegate_config);
-    let tree = FileTree::from_path(&config.file_path, &mut ids)
+    let tree = FileTree::from_path(config.file_path.as_ref().unwrap(), &mut ids)
         .await
         .map_err(Error::CreateFileTree)?;
 
@@ -155,7 +170,7 @@ pub async fn upload_directory(
 
         for file in folder.files() {
             let os_file = fs::File::open(&file.path)
-                .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
+                .map_err(|err| Error::OpenFile(config.file_path.as_ref().unwrap().clone(), err))?;
 
             let file_info = file.info(parents.clone());
 

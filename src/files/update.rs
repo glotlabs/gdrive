@@ -4,6 +4,7 @@ use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_info;
 use crate::common::file_info::FileInfo;
+use crate::common::file_helper;
 use crate::common::hub_helper;
 use crate::files;
 use crate::files::info;
@@ -13,14 +14,13 @@ use mime::Mime;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
 pub struct Config {
     pub file_id: String,
-    pub file_path: PathBuf,
+    pub file_path: Option<PathBuf>,
     pub mime_type: Option<Mime>,
     pub chunk_size: ChunkSize,
     pub print_chunk_errors: bool,
@@ -41,8 +41,9 @@ pub async fn update(config: Config) -> Result<(), Error> {
         print_chunk_info: config.print_chunk_info,
     };
 
-    let file = fs::File::open(&config.file_path)
-        .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
+    let (file, file_path) = file_helper::open_file(&config.file_path)
+        .map_err(|err| Error::OpenFile(
+            config.file_path.unwrap_or_else(|| PathBuf::from("<stdin>")), err))?;
 
     let drive_file = info::get_file(&hub, &config.file_id)
         .await
@@ -51,7 +52,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
     let file_info = FileInfo::from_file(
         &file,
         &file_info::Config {
-            file_path: config.file_path.clone(),
+            file_path: file_path.clone(),
             mime_type: config.mime_type,
             parents: drive_file.parents.clone(),
         },
@@ -63,7 +64,7 @@ pub async fn update(config: Config) -> Result<(), Error> {
     println!(
         "Updating {} with {}",
         config.file_id,
-        config.file_path.display()
+        file_path.display()
     );
 
     let file = update_file(&hub, reader, &config.file_id, file_info, delegate_config)
