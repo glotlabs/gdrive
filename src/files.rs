@@ -1,5 +1,7 @@
 pub mod copy;
 pub mod delete;
+pub mod trash;
+pub mod untrash;
 pub mod download;
 pub mod export;
 pub mod generate_ids;
@@ -14,6 +16,8 @@ pub mod upload;
 
 pub use copy::copy;
 pub use delete::delete;
+pub use trash::trash;
+pub use untrash::untrash;
 pub use download::download;
 pub use export::export;
 pub use generate_ids::generate_ids;
