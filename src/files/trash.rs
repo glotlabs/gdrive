@@ -1,25 +1,15 @@
-use crate::common::delegate::BackoffConfig;
-use crate::common::delegate::ChunkSize;
-use crate::common::delegate::UploadDelegate;
-use crate::common::delegate::UploadDelegateConfig;
 use crate::common::file_info;
-use crate::common::file_info::FileInfo;
-use crate::common::file_helper;
 use crate::common::hub_helper;
-use crate::files;
 use crate::files::info;
-use crate::files::info::DisplayConfig;
 use crate::hub::Hub;
-use mime::Mime;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::io;
 use std::path::PathBuf;
-use std::time::Duration;
 
 pub struct Config {
-    pub file_id: String
+    pub file_id: String,
 }
 
 pub async fn trash(config: Config) -> Result<(), Error> {
@@ -33,11 +23,8 @@ pub async fn trash(config: Config) -> Result<(), Error> {
         println!("File is already trashed, exiting");
         return Ok(());
     }
-    
-    println!(
-        "Trashing {}",
-        config.file_id
-    );
+
+    println!("Trashing {}", config.file_id);
 
     trash_file(&hub, &config.file_id)
         .await
@@ -48,11 +35,7 @@ pub async fn trash(config: Config) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn trash_file(
-    hub: &Hub,
-    file_id: &str
-) -> Result<(), google_drive3::Error>
-{
+pub async fn trash_file(hub: &Hub, file_id: &str) -> Result<(), google_drive3::Error> {
     let dst_file = google_drive3::api::File {
         trashed: Some(true),
         ..google_drive3::api::File::default()
@@ -66,7 +49,7 @@ pub async fn trash_file(
         .supports_all_drives(true);
 
     req.doit_without_upload().await?;
-    
+
     Ok(())
 }
 

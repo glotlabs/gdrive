@@ -248,13 +248,13 @@ enum FileCommand {
         #[arg(long)]
         recursive: bool,
     },
-    
+
     /// Trash file
     Trash {
         /// File id
         file_id: String,
     },
-    
+
     /// Untrash file
     Untrash {
         /// File id
@@ -593,20 +593,16 @@ async fn main() {
                 }
                 FileCommand::Trash { file_id } => {
                     // fmt
-                    files::trash(files::trash::Config {
-                        file_id
-                    })
-                    .await
-                    .unwrap_or_else(handle_error)
+                    files::trash(files::trash::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
-                
+
                 FileCommand::Untrash { file_id } => {
                     // fmt
-                    files::untrash(files::untrash::Config {
-                        file_id
-                    })
-                    .await
-                    .unwrap_or_else(handle_error)
+                    files::untrash(files::untrash::Config { file_id })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::Mkdir {
