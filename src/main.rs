@@ -152,6 +152,10 @@ enum FileCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+        
+        /// Skip trashed files
+        #[arg(long)]
+        skip_trashed: bool,
     },
 
     /// Download file
@@ -483,6 +487,7 @@ async fn main() {
                     skip_header,
                     full_name,
                     field_separator,
+                    skip_trashed,
                 } => {
                     let parent_query =
                         parent.map(|folder_id| ListQuery::FilesInFolder { folder_id });
@@ -498,6 +503,7 @@ async fn main() {
                         skip_header,
                         truncate_name: !full_name,
                         field_separator,
+                        skip_trashed,
                     })
                     .await
                     .unwrap_or_else(handle_error)

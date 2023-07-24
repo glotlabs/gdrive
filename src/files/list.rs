@@ -22,6 +22,7 @@ pub struct Config {
     pub skip_header: bool,
     pub truncate_name: bool,
     pub field_separator: String,
+    pub skip_trashed: bool,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -42,6 +43,12 @@ pub async fn list(config: Config) -> Result<(), Error> {
         let file_type = simplified_file_type(&file);
         let file_name = format_file_name(&config, &file);
 
+        if config.skip_trashed{
+            if file.trashed.is_some_and(|trashed| trashed == true){
+                continue;
+            }
+        }
+        
         values.push([
             file.id.unwrap_or_default(),
             file_name,
