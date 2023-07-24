@@ -108,6 +108,18 @@ pub fn prepare_fields(file: &google_drive3::api::File, config: &DisplayConfig) -
             name: String::from("ViewUrl"),
             value: file.web_view_link.clone(),
         },
+        Field {
+            name: String::from("Trashed"),
+            value: if file.trashed.is_some() && file.trashed.unwrap() {Some(format_bool(file.trashed.unwrap()))} else {None},
+        },
+        Field {
+            name: String::from("TrashedTime"),
+            value: file.trashed_time.map(format_date_time),
+        },
+        Field {
+            name: String::from("TrashingUser"),
+            value: file.trashing_user.clone().map(|user| user.display_name.unwrap_or_default()),
+        },
     ]
 }
 
