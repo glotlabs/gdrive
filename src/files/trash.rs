@@ -1,12 +1,9 @@
-use crate::common::file_info;
 use crate::common::hub_helper;
 use crate::files::info;
 use crate::hub::Hub;
 use std::error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::io;
-use std::path::PathBuf;
 
 pub struct Config {
     pub file_id: String,
@@ -56,8 +53,6 @@ pub async fn trash_file(hub: &Hub, file_id: &str) -> Result<(), google_drive3::E
 #[derive(Debug)]
 pub enum Error {
     Hub(hub_helper::Error),
-    FileInfo(file_info::Error),
-    OpenFile(PathBuf, io::Error),
     GetFile(google_drive3::Error),
     Update(google_drive3::Error),
 }
@@ -68,12 +63,8 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Hub(err) => write!(f, "{}", err),
-            Error::FileInfo(err) => write!(f, "{}", err),
-            Error::OpenFile(path, err) => {
-                write!(f, "Failed to open file '{}': {}", path.display(), err)
-            }
             Error::GetFile(err) => write!(f, "Failed to get file: {}", err),
-            Error::Update(err) => write!(f, "Failed to update file: {}", err),
+            Error::Update(err) => write!(f, "Failed to trash file: {}", err),
         }
     }
 }
