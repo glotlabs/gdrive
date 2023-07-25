@@ -1,4 +1,4 @@
-use crate::common::hub_helper;
+use crate::common::{drive_file, hub_helper};
 use crate::files::info;
 use crate::hub::Hub;
 use std::error;
@@ -7,6 +7,7 @@ use std::fmt::Formatter;
 
 pub struct Config {
     pub file_id: String,
+    pub untrash_directories: bool,
 }
 
 pub async fn untrash(config: Config) -> Result<(), Error> {
@@ -16,6 +17,8 @@ pub async fn untrash(config: Config) -> Result<(), Error> {
         .await
         .map_err(Error::GetFile)?;
 
+    err_if_directory(&exists, &config)?;
+    
     if exists.trashed.is_some_and(|trashed| trashed == false) {
         println!("File is not trashed, exiting");
         return Ok(());
@@ -55,6 +58,7 @@ pub enum Error {
     Hub(hub_helper::Error),
     GetFile(google_drive3::Error),
     Update(google_drive3::Error),
+    IsDirectory(String),
 }
 
 impl error::Error for Error {}
@@ -65,6 +69,11 @@ impl Display for Error {
             Error::Hub(err) => write!(f, "{}", err),
             Error::GetFile(err) => write!(f, "Failed to get file: {}", err),
             Error::Update(err) => write!(f, "Failed to update file: {}", err),
+            Error::IsDirectory(f) => write!(
+                f,
+                "'{}' is a directory, use --recursive to trash directories",
+                name
+            ),
         }
     }
 }
@@ -99,5 +108,18 @@ impl PatchFile {
 
     pub fn file(&self) -> google_drive3::api::File {
         self.file.clone()
+    }
+}
+
+fn err_if_directory(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
+    if drive_file::is_directory(file) && !config.trash_directories {
+        let name = file
+            .name
+            .as_ref()
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        Err(Error::IsDirectory(name))
+    } else {
+        Ok(())
     }
 }

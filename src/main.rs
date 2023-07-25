@@ -257,12 +257,20 @@ enum FileCommand {
     Trash {
         /// File id
         file_id: String,
+        
+        /// Trash directory and all it's content
+        #[arg(long)]
+        recursive: bool,
     },
 
     /// Untrash file
     Untrash {
         /// File id
         file_id: String,
+        
+        /// Untrash directory and all it's content
+        #[arg(long)]
+        recursive: bool,
     },
 
     /// Create directory
@@ -597,16 +605,22 @@ async fn main() {
                     .await
                     .unwrap_or_else(handle_error)
                 }
-                FileCommand::Trash { file_id } => {
+                FileCommand::Trash { file_id, recursive } => {
                     // fmt
-                    files::trash(files::trash::Config { file_id })
+                    files::trash(files::trash::Config {
+                        file_id,
+                        trash_directories: recursive,
+                    })
                         .await
                         .unwrap_or_else(handle_error)
                 }
 
-                FileCommand::Untrash { file_id } => {
+                FileCommand::Untrash { file_id, recursive } => {
                     // fmt
-                    files::untrash(files::untrash::Config { file_id })
+                    files::untrash(files::untrash::Config {
+                        file_id,
+                        untrash_directories: recursive
+                    })
                         .await
                         .unwrap_or_else(handle_error)
                 }
