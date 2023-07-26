@@ -69,7 +69,7 @@ impl Display for Error {
             Error::Hub(err) => write!(f, "{}", err),
             Error::GetFile(err) => write!(f, "Failed to get file: {}", err),
             Error::Update(err) => write!(f, "Failed to update file: {}", err),
-            Error::IsDirectory(f) => write!(
+            Error::IsDirectory(name) => write!(
                 f,
                 "'{}' is a directory, use --recursive to trash directories",
                 name
@@ -112,7 +112,7 @@ impl PatchFile {
 }
 
 fn err_if_directory(file: &google_drive3::api::File, config: &Config) -> Result<(), Error> {
-    if drive_file::is_directory(file) && !config.trash_directories {
+    if drive_file::is_directory(file) && !config.untrash_directories {
         let name = file
             .name
             .as_ref()
