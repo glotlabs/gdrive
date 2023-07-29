@@ -519,6 +519,7 @@ async fn main() {
                         follow_shortcuts,
                         download_directories: recursive,
                         destination: dst,
+                        parallelisme: 10,
                     })
                     .await
                     .unwrap_or_else(handle_error)
