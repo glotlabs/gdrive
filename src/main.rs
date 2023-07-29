@@ -171,6 +171,9 @@ enum FileCommand {
         #[arg(long)]
         recursive: bool,
 
+        #[arg(long)]
+        concurent: usize,
+
         /// Path where the file/directory should be downloaded to
         #[arg(long, value_name = "PATH")]
         destination: Option<PathBuf>,
@@ -498,6 +501,7 @@ async fn main() {
                     recursive,
                     destination,
                     stdout,
+                    concurent,
                 } => {
                     let existing_file_action = if overwrite {
                         files::download::ExistingFileAction::Overwrite
@@ -519,7 +523,7 @@ async fn main() {
                         follow_shortcuts,
                         download_directories: recursive,
                         destination: dst,
-                        parallelisme: 10,
+                        parallelisme: concurent,
                     })
                     .await
                     .unwrap_or_else(handle_error)
