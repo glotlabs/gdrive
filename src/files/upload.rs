@@ -2,11 +2,11 @@ use crate::common::delegate::BackoffConfig;
 use crate::common::delegate::ChunkSize;
 use crate::common::delegate::UploadDelegate;
 use crate::common::delegate::UploadDelegateConfig;
+use crate::common::file_helper;
 use crate::common::file_info;
 use crate::common::file_info::FileInfo;
 use crate::common::file_tree;
 use crate::common::file_tree::FileTree;
-use crate::common::file_helper;
 use crate::common::hub_helper;
 use crate::common::id_gen::IdGen;
 use crate::files;
@@ -57,15 +57,20 @@ pub async fn upload(config: Config) -> Result<(), Error> {
             } else {
                 upload_regular(&hub, &config, delegate_config).await?;
             }
-        },
+        }
         None => {
             let tmp_file = file_helper::stdin_to_file()
                 .map_err(|err| Error::OpenFile(PathBuf::from("<stdin>"), err))?;
 
-            upload_regular(&hub, &Config {
-                file_path: Some(tmp_file.as_ref().to_path_buf()),
-                ..config
-            }, delegate_config).await?;
+            upload_regular(
+                &hub,
+                &Config {
+                    file_path: Some(tmp_file.as_ref().to_path_buf()),
+                    ..config
+                },
+                delegate_config,
+            )
+            .await?;
         }
     };
 
@@ -78,8 +83,7 @@ pub async fn upload_regular(
     delegate_config: UploadDelegateConfig,
 ) -> Result<(), Error> {
     let file_path = config.file_path.as_ref().unwrap();
-    let file = fs::File::open(file_path)
-        .map_err(|err| Error::OpenFile(file_path.clone(), err))?;
+    let file = fs::File::open(file_path).map_err(|err| Error::OpenFile(file_path.clone(), err))?;
 
     let file_info = FileInfo::from_file(
         &file,
@@ -168,9 +172,10 @@ pub async fn upload_directory(
         let folder_id = drive_folder.id.ok_or(Error::DriveFolderMissingId)?;
         let parents = Some(vec![folder_id.clone()]);
 
-        for file in folder.files() {
+        futures::future::join_all(folder.files().into_iter().map(|file| {
             let os_file = fs::File::open(&file.path)
-                .map_err(|err| Error::OpenFile(config.file_path.as_ref().unwrap().clone(), err))?;
+                .map_err(|err| Error::OpenFile(config.file_path.as_ref().unwrap().clone(), err))
+                .unwrap();
 
             let file_info = file.info(parents.clone());
 
@@ -182,6 +187,10 @@ pub async fn upload_directory(
                 );
             }
 
+            if config.print_only_id {
+                println!("{}: {}", file.relative_path().display(), file.drive_id);
+            }
+
             upload_file(
                 hub,
                 os_file,
@@ -189,13 +198,8 @@ pub async fn upload_directory(
                 file_info,
                 delegate_config.clone(),
             )
-            .await
-            .map_err(Error::Upload)?;
-
-            if config.print_only_id {
-                println!("{}: {}", file.relative_path().display(), file.drive_id);
-            }
-        }
+        }))
+        .await;
     }
 
     if !config.print_only_id {
