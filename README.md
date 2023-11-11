@@ -8,7 +8,7 @@ gdrive is a command line application for interacting with Google Drive. This is 
 
 ## Community
 
-Join our [discord server](https://discord.gg/zPcdFUqKeQ) to discuss everything gdrive.
+Join our [discord server](https://discord.gg/5fyVwp8559) to discuss everything gdrive.
 
 ## Sponsor
 
