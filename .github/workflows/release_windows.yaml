@@ -26,8 +26,7 @@ jobs:
         run: |
           cargo build --release
           cd target/release
-          mv $APP_NAME $APP_NAME.exe
-          7z a -tzip $ARCHIVE_NAME $APP_NAME.exe
+          7z a -tzip $ARCHIVE_NAME $APP_NAME
           mv $ARCHIVE_NAME ../../
         shell: bash
 
