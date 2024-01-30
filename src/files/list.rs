@@ -31,7 +31,7 @@ pub async fn list(config: Config) -> Result<(), Error> {
         &ListFilesConfig {
             query: config.query.clone(),
             order_by: config.order_by.clone(),
-            max_files: min(config.max_files, MAX_PAGE_SIZE),
+            max_files: config.max_files,
         },
     )
     .await?;
