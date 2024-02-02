@@ -152,6 +152,10 @@ enum FileCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+        
+        /// Skip trashed files
+        #[arg(long)]
+        skip_trashed: bool,
     },
 
     /// Download file
@@ -245,6 +249,26 @@ enum FileCommand {
         file_id: String,
 
         /// Delete directory and all it's content
+        #[arg(long)]
+        recursive: bool,
+    },
+
+    /// Trash file
+    Trash {
+        /// File id
+        file_id: String,
+        
+        /// Trash directory and all it's content
+        #[arg(long)]
+        recursive: bool,
+    },
+
+    /// Untrash file
+    Untrash {
+        /// File id
+        file_id: String,
+        
+        /// Untrash directory and all it's content
         #[arg(long)]
         recursive: bool,
     },
@@ -471,6 +495,7 @@ async fn main() {
                     skip_header,
                     full_name,
                     field_separator,
+                    skip_trashed,
                 } => {
                     let parent_query =
                         parent.map(|folder_id| ListQuery::FilesInFolder { folder_id });
@@ -486,6 +511,7 @@ async fn main() {
                         skip_header,
                         truncate_name: !full_name,
                         field_separator,
+                        skip_trashed,
                     })
                     .await
                     .unwrap_or_else(handle_error)
@@ -578,6 +604,25 @@ async fn main() {
                     })
                     .await
                     .unwrap_or_else(handle_error)
+                }
+                FileCommand::Trash { file_id, recursive } => {
+                    // fmt
+                    files::trash(files::trash::Config {
+                        file_id,
+                        trash_directories: recursive,
+                    })
+                        .await
+                        .unwrap_or_else(handle_error)
+                }
+
+                FileCommand::Untrash { file_id, recursive } => {
+                    // fmt
+                    files::untrash(files::untrash::Config {
+                        file_id,
+                        untrash_directories: recursive
+                    })
+                        .await
+                        .unwrap_or_else(handle_error)
                 }
 
                 FileCommand::Mkdir {
