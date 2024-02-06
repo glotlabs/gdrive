@@ -2,11 +2,17 @@ use crate::common::drive_file;
 use crate::common::file_tree_drive;
 use crate::common::file_tree_drive::FileTreeDrive;
 use crate::common::hub_helper;
-use crate::common::md5_writer::Md5Writer;
+
 use crate::files;
+use crate::files::list;
+use crate::files::list::ListQuery;
+use crate::files::FileExtension;
 use crate::hub::Hub;
-use async_recursion::async_recursion;
+
+use futures::stream;
 use futures::stream::StreamExt;
+
+use futures::TryStreamExt;
 use google_drive3::hyper;
 use human_bytes::human_bytes;
 use std::error;
@@ -18,13 +24,22 @@ use std::io;
 use std::io::BufReader;
 use std::io::Read;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
+
+use tokio_util::compat::FuturesAsyncReadCompatExt;
+use tokio_util::io::InspectReader;
+
+use super::list::list_files;
+
+type GFile = google_drive3::api::File;
 
 pub struct Config {
     pub file_id: String,
     pub existing_file_action: ExistingFileAction,
     pub follow_shortcuts: bool,
     pub download_directories: bool,
+    pub parallelisme: usize,
     pub destination: Destination,
 }
 
@@ -71,7 +86,84 @@ pub enum ExistingFileAction {
     Overwrite,
 }
 
-#[async_recursion]
+pub async fn _download_file(
+    hub: &Hub,
+    file_path: impl AsRef<Path>,
+    file: &GFile,
+) -> Result<(), Error> {
+    let file_id = file.id.as_ref().ok_or_else(|| Error::MissingFileName)?;
+    let body = download_file(&hub, file_id.as_str())
+        .await
+        .map_err(Error::DownloadFile)?;
+
+    let file_path = file_path.as_ref();
+
+    println!("Downloading file '{}'", file_path.display());
+    save_body_to_file(body, &file_path, None).await?;
+
+    Ok(())
+}
+
+pub async fn _download_dir(hub: &Hub, file: GFile, config: &Config) -> Result<(), Error> {
+    let root_path = config.canonical_destination_root()?;
+    let file_name = file.name.as_ref().ok_or_else(|| Error::MissingFileName)?;
+    let path = root_path.join(file_name.as_str());
+
+    stream::unfold(vec![(path, file)], |mut to_visit| async {
+        let (path, file) = to_visit.pop()?;
+        let file_id = file.id.as_ref()?;
+        let files = list_files(
+            &hub,
+            &list::ListFilesConfig {
+                query: ListQuery::FilesInFolder {
+                    folder_id: file_id.clone(),
+                },
+                order_by: Default::default(),
+                max_files: usize::MAX,
+            },
+        )
+        .await;
+
+        let file_stream = match files {
+            Ok(files) => {
+                let (dirs, others): (Vec<_>, Vec<_>) =
+                    files.into_iter().partition(|f| f.is_directory()); // TODO: drain filter
+                to_visit.extend(
+                    dirs.into_iter()
+                        .filter_map(|file| Some((path.join(file.name.as_ref()?), file))),
+                );
+                stream::iter(
+                    others
+                        .into_iter()
+                        .filter_map(move |file| Some((path.join(file.name.as_ref()?), file))),
+                )
+                .map(Ok)
+                .left_stream()
+            }
+            Err(err) => stream::once(async {
+                Err(Error::CreateFileTree(file_tree_drive::Error::ListFiles(
+                    err,
+                )))
+            })
+            .right_stream(),
+        };
+
+        Some((file_stream, to_visit))
+    })
+    .flatten()
+    .map(|file| async move {
+        match file {
+            Ok((path, file)) => _download_file(&hub, &path, &file).await,
+            Err(_err) => Err(Error::MissingFileName), // TODO: fix error
+        }
+    })
+    .buffer_unordered(config.parallelisme)
+    .collect::<Vec<_>>()
+    .await;
+
+    Ok(())
+}
+
 pub async fn download(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
 
@@ -84,19 +176,19 @@ pub async fn download(config: Config) -> Result<(), Error> {
     err_if_shortcut(&file, &config)?;
 
     if drive_file::is_shortcut(&file) {
-        let target_file_id = file.shortcut_details.and_then(|details| details.target_id);
+        // let target_file_id = file.shortcut_details.and_then(|details| details.target_id);
 
-        err_if_shortcut_target_is_missing(&target_file_id)?;
+        // err_if_shortcut_target_is_missing(&target_file_id)?;
 
-        download(Config {
-            file_id: target_file_id.unwrap_or_default(),
-            ..config
-        })
-        .await?;
+        // download(Config {
+        //     file_id: target_file_id.unwrap_or_default(),
+        //     ..config
+        // })
+        // .await?;
     } else if drive_file::is_directory(&file) {
-        download_directory(&hub, &file, &config).await?;
+        _download_dir(&hub, file, &config).await?;
     } else {
-        download_regular(&hub, &file, &config).await?;
+        // download_regular(&hub, &file, &config).await?;
     }
 
     Ok(())
@@ -294,28 +386,45 @@ impl Display for Error {
 
 // TODO: move to common
 pub async fn save_body_to_file(
-    mut body: hyper::Body,
-    file_path: &PathBuf,
+    body: hyper::Body,
+    file_path: impl AsRef<Path>,
     expected_md5: Option<String>,
 ) -> Result<(), Error> {
+    let file_path = file_path.as_ref();
     // Create temporary file
+
+    tokio::fs::create_dir_all(file_path.parent().unwrap())
+        .await
+        .map_err(|err| Error::CreateDirectory(file_path.to_path_buf(), err))?;
+
     let tmp_file_path = file_path.with_extension("incomplete");
-    let file = File::create(&tmp_file_path).map_err(Error::CreateFile)?;
+    let mut file = tokio::fs::File::create(&tmp_file_path)
+        .await
+        .map_err(Error::CreateFile)?;
 
-    // Wrap file in writer that calculates md5
-    let mut writer = Md5Writer::new(file);
+    let mut md5 = md5::Context::new();
 
-    // Read chunks from stream and write to file
-    while let Some(chunk_result) = body.next().await {
-        let chunk = chunk_result.map_err(Error::ReadChunk)?;
-        writer.write_all(&chunk).map_err(Error::WriteChunk)?;
-    }
+    let body = body
+        .into_stream()
+        .map(|result| {
+            result.map_err(|_error| std::io::Error::new(std::io::ErrorKind::Other, "Error!"))
+        })
+        .into_async_read()
+        .compat();
+
+    let mut body = InspectReader::new(body, |bytes| md5.consume(&bytes));
+
+    tokio::io::copy(&mut body, &mut file)
+        .await
+        .map_err(|err| Error::WriteChunk(err))?;
 
     // Check md5
-    err_if_md5_mismatch(expected_md5, writer.md5())?;
+    err_if_md5_mismatch(expected_md5, format!("{:x}", md5.compute()))?;
 
     // Rename temporary file to final file
-    fs::rename(&tmp_file_path, &file_path).map_err(Error::RenameFile)
+    tokio::fs::rename(&tmp_file_path, &file_path)
+        .await
+        .map_err(Error::RenameFile)
 }
 
 // TODO: move to common

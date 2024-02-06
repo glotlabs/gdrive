@@ -72,6 +72,7 @@ pub async fn list(config: Config) -> Result<(), Error> {
     Ok(())
 }
 
+#[derive(Default)]
 pub struct ListFilesConfig {
     pub query: ListQuery,
     pub order_by: ListSortOrder,
