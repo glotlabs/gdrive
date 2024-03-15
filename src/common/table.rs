@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::io;
-use std::io::{stdout, Write};
+use std::io::Write;
 use tabwriter::TabWriter;
 
 pub struct Table<H: Display, V: Display, const COLUMNS: usize> {
@@ -41,7 +41,7 @@ pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(
 
         writer.flush()
     } else {
-        let mut tw= writer;
+        let mut tw = TabWriter::new(writer).padding(3);
 
         if !config.skip_header {
             writeln!(&mut tw, "{}", to_row(config, table.header))?;
