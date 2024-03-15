@@ -11,6 +11,7 @@ use std::io;
 pub struct Config {
     pub skip_header: bool,
     pub field_separator: String,
+    pub tsv: bool,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -48,6 +49,7 @@ fn print_drives_table(config: &Config, drives: Vec<google_drive3::api::Drive>) {
         &table::DisplayConfig {
             skip_header: config.skip_header,
             separator: config.field_separator.clone(),
+            tsv: config.tsv,
         },
     );
 }

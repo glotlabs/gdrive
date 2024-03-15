@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::io;
-use std::io::Write;
+use std::io::{stdout, Write};
 use tabwriter::TabWriter;
 
 pub struct Table<H: Display, V: Display, const COLUMNS: usize> {
@@ -12,6 +12,7 @@ pub struct Table<H: Display, V: Display, const COLUMNS: usize> {
 pub struct DisplayConfig {
     pub skip_header: bool,
     pub separator: String,
+    pub tsv: bool,
 }
 
 impl Default for DisplayConfig {
@@ -19,26 +20,40 @@ impl Default for DisplayConfig {
         Self {
             skip_header: false,
             separator: String::from("\t"),
+            tsv: false,
         }
     }
 }
 
 pub fn write<W: Write, H: Display, V: Display, const COLUMNS: usize>(
-    writer: W,
+    mut writer: W,
     table: Table<H, V, COLUMNS>,
     config: &DisplayConfig,
 ) -> Result<(), io::Error> {
-    let mut tw = TabWriter::new(writer).padding(3);
+    if config.tsv {
+        if !config.skip_header {
+            writeln!(&mut writer, "{}", to_row(config, table.header))?;
+        }
 
-    if !config.skip_header {
-        writeln!(&mut tw, "{}", to_row(config, table.header))?;
+        for value in table.values {
+            writeln!(&mut writer, "{}", to_row(config, value))?;
+        }
+
+        writer.flush()
+    } else {
+        let mut tw= writer;
+
+        if !config.skip_header {
+            writeln!(&mut tw, "{}", to_row(config, table.header))?;
+        }
+
+        for value in table.values {
+            writeln!(&mut tw, "{}", to_row(config, value))?;
+        }
+
+        tw.flush()
     }
 
-    for value in table.values {
-        writeln!(&mut tw, "{}", to_row(config, value))?;
-    }
-
-    tw.flush()
 }
 
 fn to_row<T: Display, const COLUMNS: usize>(
