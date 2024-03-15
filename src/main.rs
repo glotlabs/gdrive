@@ -104,6 +104,10 @@ enum DriveCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+
+        /// enable TSV mode. Use tab separator and disable tab writer.
+        #[arg(long)]
+        tsv: bool,
     },
 }
 
@@ -152,6 +156,10 @@ enum FileCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+
+        /// enable TSV mode. Use tab separator and disable tab writer.
+        #[arg(long)]
+        tsv: bool,
     },
 
     /// Download file
@@ -359,6 +367,10 @@ enum PermissionCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+
+        /// enable TSV mode. Use tab separator and disable tab writer.
+        #[arg(long)]
+        tsv: bool,
     },
 
     /// Revoke permissions for a file. If no other options are specified, the 'anyone' permission will be revoked
@@ -438,9 +450,11 @@ async fn main() {
                 DriveCommand::List {
                     skip_header,
                     field_separator,
+                    tsv,
                 } => drives::list(drives::list::Config {
                     skip_header,
                     field_separator,
+                    tsv,
                 })
                 .await
                 .unwrap_or_else(handle_error),
@@ -471,6 +485,7 @@ async fn main() {
                     skip_header,
                     full_name,
                     field_separator,
+                    tsv,
                 } => {
                     let parent_query =
                         parent.map(|folder_id| ListQuery::FilesInFolder { folder_id });
@@ -486,6 +501,7 @@ async fn main() {
                         skip_header,
                         truncate_name: !full_name,
                         field_separator,
+                        tsv,
                     })
                     .await
                     .unwrap_or_else(handle_error)
@@ -687,12 +703,14 @@ async fn main() {
                     file_id,
                     skip_header,
                     field_separator,
+                    tsv,
                 } => {
                     // fmt
                     permissions::list(permissions::list::Config {
                         file_id,
                         skip_header,
                         field_separator,
+                        tsv,
                     })
                     .await
                     .unwrap_or_else(handle_error)

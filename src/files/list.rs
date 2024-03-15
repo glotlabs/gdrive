@@ -22,6 +22,7 @@ pub struct Config {
     pub skip_header: bool,
     pub truncate_name: bool,
     pub field_separator: String,
+    pub tsv: bool,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
@@ -66,6 +67,7 @@ pub async fn list(config: Config) -> Result<(), Error> {
         &table::DisplayConfig {
             skip_header: config.skip_header,
             separator: config.field_separator,
+            tsv: config.tsv,
         },
     );
 
