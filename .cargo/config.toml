@@ -1,0 +1,10 @@
+# use the correct linker for cross compiling to ARM
+[target.armv7-unknown-linux-musleabihf]
+linker = "rust-lld"
+
+[target.arm-unknown-linux-musleabi]
+linker = "rust-lld"
+
+[target.aarch64-unknown-linux-musl]
+linker = "rust-lld"
+

@@ -1,0 +1,38 @@
+name: Build and upload release (macos arm64)
+
+on:
+  release:
+    types: [created]
+
+env:
+  APP_NAME: gdrive
+  ARCHIVE_NAME: gdrive_macos-arm64.tar.gz
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Prepare upload url
+        run: |
+          UPLOAD_URL="$(jq -r '.release.upload_url' "$GITHUB_EVENT_PATH" | sed -e "s/{?name,label}$/?name=${ARCHIVE_NAME}/")"
+          echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
+
+      - name: Build application
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo build --release --target=aarch64-apple-darwin
+          tar -czf $ARCHIVE_NAME -C target/aarch64-apple-darwin/release/ $APP_NAME
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: ${{ env.ARCHIVE_NAME }}
+          asset_name: ${{ env.ARCHIVE_NAME }}
+          asset_content_type: application/gzip

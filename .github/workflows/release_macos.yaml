@@ -1,4 +1,4 @@
-name: Build and upload release (macos)
+name: Build and upload release (macos x86_64)
 
 on:
   release:

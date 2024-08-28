@@ -61,7 +61,7 @@ pub enum DocType {
 }
 
 impl DocType {
-    const IMPORT_EXTENSION_MAP: &[(FileExtension, DocType)] = &[
+    const IMPORT_EXTENSION_MAP: &'static [(FileExtension, DocType)] = &[
         (FileExtension::Doc, DocType::Document),
         (FileExtension::Docx, DocType::Document),
         (FileExtension::Odt, DocType::Document),
