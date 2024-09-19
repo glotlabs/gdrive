@@ -39,7 +39,7 @@ pub async fn get_file(
     let (_, file) = hub
         .files()
         .get(file_id)
-        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink,shortcutDetails(targetId,targetMimeType)")
+        .param("fields", "id,name,size,createdTime,modifiedTime,md5Checksum,mimeType,parents,shared,description,webContentLink,webViewLink,shortcutDetails(targetId,targetMimeType),trashed,trashedTime")
         .supports_all_drives(true)
         .add_scope(google_drive3::api::Scope::Full)
         .doit()
@@ -107,6 +107,18 @@ pub fn prepare_fields(file: &google_drive3::api::File, config: &DisplayConfig) -
         Field {
             name: String::from("ViewUrl"),
             value: file.web_view_link.clone(),
+        },
+        Field {
+            name: String::from("Trashed"),
+            value: if file.trashed.is_some() && file.trashed.unwrap() {Some(format_bool(file.trashed.unwrap()))} else {None},
+        },
+        Field {
+            name: String::from("TrashedTime"),
+            value: file.trashed_time.map(format_date_time),
+        },
+        Field {
+            name: String::from("TrashingUser"),
+            value: file.trashing_user.clone().map(|user| user.display_name.unwrap_or_default()),
         },
     ]
 }
