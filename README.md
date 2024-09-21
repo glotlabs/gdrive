@@ -44,11 +44,19 @@ you will help support:
 ### Using gdrive on a remote server
 
 Part of the flow for adding an account to gdrive requires your web browser to access `localhost:8085` on the machine that runs gdrive.
-This makes it tricky to set up accounts on remote servers. The suggested workaround is to add the account on your local machine and import it on the remote server:
+This makes it tricky to set up accounts on remote servers. One suggested workaround is to add the account on your local machine and import it on the remote server:
 1. [local] Run `gdrive account add` 
 2. [local] Run `gdrive account export <ACCOUNT_NAME>`
 3. [local] Copy the exported archive to the remote server
 4. [remote] Run `gdrive account import <ARCHIVE_PATH>`
+
+Another workaround is to use SSH an ssh tunnel. In this case the flow is as follows:
+1. [local] Run `ssh -L 8085:localhost:8085 <YOUR_REMOTE_SERVER_IP>` in a shell and keep it open. This will enable an ssh tunnel for traffic on port 8085 to the remote server.
+2. [remote] Run `gdrive account add`.
+3. [remote] This will prompt for the credentials as described in the "Add google account to gdrive" section above. Copy the URL.
+4. [local] Open the copied URL in a browser. As port 8085 is now forwarded you should be able to complete the setup on your local machine, while the tool and temporary web servers runs on the remote.
+5. [local] Close the ssh shell.
+6. Gdrive is now ready to use!
 
 ### Credentials
 Gdrive saves your account credentials and tokens under `$HOME/.config/gdrive3/`.
