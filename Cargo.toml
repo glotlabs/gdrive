@@ -26,3 +26,7 @@ tabwriter = "1.2.1"
 tar = "0.4.38"
 tempfile = "3.3.0"
 tokio = { version = "1.23.0", features = ["full"] }
+hyper-proxy = "0.9.1"
+http = "1.2.0"
+headers = "0.3.9"
+url = "2.5.4"
