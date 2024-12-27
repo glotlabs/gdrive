@@ -7,6 +7,7 @@ pub mod files;
 pub mod hub;
 pub mod permissions;
 pub mod version;
+pub mod proxy;
 
 use clap::{Parser, Subcommand};
 use common::delegate::ChunkSize;
