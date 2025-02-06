@@ -28,6 +28,7 @@ pub const EXTENSION_PPTX: &str = "pptx";
 pub const EXTENSION_ODP: &str = "odp";
 pub const EXTENSION_EPUB: &str = "epub";
 pub const EXTENSION_TXT: &str = "txt";
+pub const EXTENSION_MD: &str = "md";
 
 pub const MIME_TYPE_DOC: &str = "application/msword";
 pub const MIME_TYPE_DOCX: &str =
@@ -44,6 +45,7 @@ pub const MIME_TYPE_XLS: &str = "application/vnd.ms-excel";
 pub const MIME_TYPE_XLSX: &str =
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 pub const MIME_TYPE_CSV: &str = "text/csv";
+pub const MIME_TYPE_MD: &str = "text/markdown";
 pub const MIME_TYPE_TSV: &str = "text/tab-separated-values";
 pub const MIME_TYPE_ODS: &str = "application/vnd.oasis.opendocument.spreadsheet";
 pub const MIME_TYPE_PPT: &str = "application/vnd.ms-powerpoint";
@@ -72,6 +74,7 @@ impl DocType {
         (FileExtension::Rtf, DocType::Document),
         (FileExtension::Pdf, DocType::Document),
         (FileExtension::Html, DocType::Document),
+        (FileExtension::Md, DocType::Document),
         (FileExtension::Xls, DocType::Spreadsheet),
         (FileExtension::Xlsx, DocType::Spreadsheet),
         (FileExtension::Csv, DocType::Spreadsheet),
@@ -133,6 +136,7 @@ impl DocType {
                 FileExtension::Epub,
                 FileExtension::Rtf,
                 FileExtension::Txt,
+                FileExtension::Md,
                 FileExtension::Html,
             ],
 
@@ -194,6 +198,7 @@ pub enum FileExtension {
     Odp,
     Epub,
     Txt,
+    Md,
 }
 
 impl fmt::Display for FileExtension {
@@ -219,6 +224,7 @@ impl fmt::Display for FileExtension {
             FileExtension::Odp => write!(f, "{}", EXTENSION_ODP),
             FileExtension::Epub => write!(f, "{}", EXTENSION_EPUB),
             FileExtension::Txt => write!(f, "{}", EXTENSION_TXT),
+            FileExtension::Md => write!(f, "{}", EXTENSION_MD),
         }
     }
 }
@@ -248,6 +254,7 @@ impl FileExtension {
             EXTENSION_ODP => Some(FileExtension::Odp),
             EXTENSION_EPUB => Some(FileExtension::Epub),
             EXTENSION_TXT => Some(FileExtension::Txt),
+            EXTENSION_MD => Some(FileExtension::Md),
             _ => None,
         }
     }
@@ -274,6 +281,7 @@ impl FileExtension {
             FileExtension::Odp => MIME_TYPE_ODP.parse().ok(),
             FileExtension::Epub => MIME_TYPE_EPUB.parse().ok(),
             FileExtension::Txt => MIME_TYPE_TXT.parse().ok(),
+            FileExtension::Md => MIME_TYPE_MD.parse().ok(),
         }
     }
 }
