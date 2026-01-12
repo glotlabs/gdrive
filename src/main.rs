@@ -104,6 +104,10 @@ enum DriveCommand {
         /// Field separator
         #[arg(long, default_value_t = String::from("\t"))]
         field_separator: String,
+
+        /// Max results to return
+        #[arg(long)]
+        max: Option<i32>,
     },
 }
 
@@ -438,9 +442,11 @@ async fn main() {
                 DriveCommand::List {
                     skip_header,
                     field_separator,
+                    max,
                 } => drives::list(drives::list::Config {
                     skip_header,
                     field_separator,
+                    max,
                 })
                 .await
                 .unwrap_or_else(handle_error),
