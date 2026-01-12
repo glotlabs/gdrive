@@ -11,13 +11,14 @@ use std::io;
 pub struct Config {
     pub skip_header: bool,
     pub field_separator: String,
+    pub max: Option<i32>,
 }
 
 pub async fn list(config: Config) -> Result<(), Error> {
     let hub = hub_helper::get_hub().await.map_err(Error::Hub)?;
     let delegate_config = UploadDelegateConfig::default();
 
-    let drives = list_drives(&hub, delegate_config)
+    let drives = list_drives(&hub, delegate_config, config.max)
         .await
         .map_err(Error::ListDrives)?;
 
@@ -55,18 +56,51 @@ fn print_drives_table(config: &Config, drives: Vec<google_drive3::api::Drive>) {
 pub async fn list_drives(
     hub: &Hub,
     delegate_config: UploadDelegateConfig,
+    max: Option<i32>,
 ) -> Result<Vec<google_drive3::api::Drive>, google_drive3::Error> {
     let mut delegate = UploadDelegate::new(delegate_config);
+    let mut all_drives = Vec::new();
+    let mut page_token: Option<String> = None;
+    
+    // Default to 10 if the user does not provide a max
+    let target_max = max.unwrap_or(10);
+    // API limit is 100; keep page size within target_max and the API cap
+    let page_size = target_max.min(100);
 
-    let (_, drives_list) = hub
-        .drives()
-        .list()
-        .add_scope(google_drive3::api::Scope::Full)
-        .delegate(&mut delegate)
-        .doit()
-        .await?;
+    loop {
+        let mut request = hub
+            .drives()
+            .list()
+            .page_size(page_size)
+            .add_scope(google_drive3::api::Scope::Full);
+        
+        if let Some(token) = page_token {
+            request = request.page_token(&token);
+        }
+        
+        let (_, drives_list) = request
+            .delegate(&mut delegate)
+            .doit()
+            .await?;
 
-    Ok(drives_list.drives.unwrap_or_default())
+        if let Some(mut drives) = drives_list.drives {
+            all_drives.append(&mut drives);
+        }
+        
+        // Check if we've reached the target max or there are no more pages
+        if all_drives.len() >= target_max as usize || drives_list.next_page_token.is_none() {
+            break;
+        }
+        
+        page_token = drives_list.next_page_token;
+    }
+    
+    // Truncate to exact max if specified
+    if let Some(max_count) = max {
+        all_drives.truncate(max_count as usize);
+    }
+
+    Ok(all_drives)
 }
 
 #[derive(Debug)]
