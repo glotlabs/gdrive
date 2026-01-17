@@ -41,6 +41,19 @@ you will help support:
 - You will be redirected to `http://localhost:8085` (gdrive starts a temporary web server) which completes the setup
 - Gdrive is now ready to use!
 
+## Usage
+
+### Navigate (TUI)
+
+The `navigate` command opens an interactive terminal UI for browsing Drive and performing actions.
+
+- Start the UI: `gdrive navigate`
+- Navigate: `↑/↓` to move, `Enter`/`→` to open folders, `←`/`b` to go back
+- Download: press `d`, enter destination (empty = current directory)
+- Upload: press `u` to open the upload picker, `Enter` to select, `u` to start upload
+- Delete: press `x`, confirm with `y` or cancel with `n`/`Esc`
+- Quit: press `q` (if transfers are active, a confirmation dialog appears)
+
 ### Using gdrive on a remote server
 
 Part of the flow for adding an account to gdrive requires your web browser to access `localhost:8085` on the machine that runs gdrive.

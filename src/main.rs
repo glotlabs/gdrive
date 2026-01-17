@@ -5,6 +5,7 @@ pub mod common;
 pub mod drives;
 pub mod files;
 pub mod hub;
+pub mod navigate;
 pub mod permissions;
 pub mod version;
 
@@ -55,6 +56,9 @@ enum Command {
 
     /// Print version information
     Version,
+
+    /// Open interactive TUI
+    Navigate,
 }
 
 #[derive(Subcommand)]
@@ -712,6 +716,11 @@ async fn main() {
                         .unwrap_or_else(handle_error)
                 }
             }
+        }
+
+        Command::Navigate => {
+            // fmt
+            navigate::navigate().await.unwrap_or_else(handle_error)
         }
 
         Command::Version => {

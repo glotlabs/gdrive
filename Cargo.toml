@@ -9,6 +9,7 @@ edition = "2021"
 async-recursion = "1.0.2"
 bytes = "1.3.0"
 clap = { version = "4.0.29", features = ["derive"] }
+crossterm = "0.27.0"
 exponential-backoff = "1.1.0"
 futures = "0.3.25"
 google-drive3 = { git = "https://github.com/prasmussen/google-apis-rs", branch = "resumable-fix" }
@@ -19,6 +20,7 @@ md5 = "0.7.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
 mktemp = "0.5.0"
+ratatui = "0.26.3"
 rustc_version_runtime = "0.2.1"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.89"
