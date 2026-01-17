@@ -32,6 +32,19 @@ you will help support:
 - Unpack and put the binary somewhere in your PATH (i.e. `/usr/local/bin` on linux and macos)
 - Note that the binary is not code signed and will cause a warning on windows and macos when running. This will be fixed later, but for now you can find a workaround via your favorite search engine.
 
+### Build static ARM binaries (Docker)
+
+This repository includes Docker scripts for building static ARM binaries with musl.
+
+- ARM64 (aarch64):
+  - `./dockerbuild.sh aarch64-unknown-linux-musl`
+  - `./indockerbuild.sh aarch64-unknown-linux-musl`
+  - Output: `dist/aarch64-unknown-linux-musl/gdrive`
+- ARM32 (armv7):
+  - `./dockerbuild.sh armv7-unknown-linux-musleabihf`
+  - `./indockerbuild.sh armv7-unknown-linux-musleabihf`
+  - Output: `dist/armv7-unknown-linux-musleabihf/gdrive`
+
 ### Add google account to gdrive
 
 - Run `gdrive account add`
