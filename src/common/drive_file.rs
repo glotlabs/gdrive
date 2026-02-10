@@ -74,6 +74,7 @@ impl DocType {
         (FileExtension::Rtf, DocType::Document),
         (FileExtension::Pdf, DocType::Document),
         (FileExtension::Html, DocType::Document),
+        (FileExtension::Md, DocType::Document),
         (FileExtension::Xls, DocType::Spreadsheet),
         (FileExtension::Xlsx, DocType::Spreadsheet),
         (FileExtension::Csv, DocType::Spreadsheet),
