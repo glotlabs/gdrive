@@ -26,20 +26,27 @@ pub async fn import(config: Config) -> Result<(), Error> {
 
     let doc_type =
         drive_file::DocType::from_file_path(&config.file_path).ok_or(Error::UnsupportedFileType)?;
-    let mime_type = doc_type.mime().ok_or(Error::GetMime(doc_type.clone()))?;
+    let target_mime_type = doc_type.mime().ok_or(Error::GetMime(doc_type.clone()))?;
+
+    // Get source file's MIME type based on extension
+    let source_mime_type = drive_file::FileExtension::from_path(&config.file_path)
+        .and_then(|ext| ext.get_export_mime());
 
     let file = fs::File::open(&config.file_path)
         .map_err(|err| Error::OpenFile(config.file_path.clone(), err))?;
 
-    let file_info = FileInfo::from_file(
+    let mut file_info = FileInfo::from_file(
         &file,
         &file_info::Config {
             file_path: config.file_path.clone(),
-            mime_type: Some(mime_type),
+            mime_type: Some(target_mime_type),
             parents: config.parents.clone(),
         },
     )
     .map_err(Error::FileInfo)?;
+
+    // Set the source MIME type for proper import conversion
+    file_info.source_mime_type = source_mime_type;
 
     let reader = std::io::BufReader::new(file);
 

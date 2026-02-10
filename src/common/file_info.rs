@@ -7,6 +7,7 @@ use std::path::PathBuf;
 pub struct FileInfo {
     pub name: String,
     pub mime_type: mime::Mime,
+    pub source_mime_type: Option<mime::Mime>,
     pub parents: Option<Vec<String>>,
     pub size: u64,
 }
@@ -36,6 +37,7 @@ impl FileInfo {
         Ok(FileInfo {
             name: file_name,
             mime_type,
+            source_mime_type: None,
             parents: config.parents.clone(),
             size: file_size,
         })

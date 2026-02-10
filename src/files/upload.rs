@@ -228,6 +228,9 @@ where
         ..google_drive3::api::File::default()
     };
 
+    // For import operations, use source_mime_type for the upload content type
+    let upload_mime_type = file_info.source_mime_type.unwrap_or(file_info.mime_type);
+
     let chunk_size_bytes = delegate_config.chunk_size.in_bytes();
     let mut delegate = UploadDelegate::new(delegate_config);
 
@@ -240,9 +243,9 @@ where
         .supports_all_drives(true);
 
     let (_, file) = if file_info.size > chunk_size_bytes {
-        req.upload_resumable(src_file, file_info.mime_type).await?
+        req.upload_resumable(src_file, upload_mime_type).await?
     } else {
-        req.upload(src_file, file_info.mime_type).await?
+        req.upload(src_file, upload_mime_type).await?
     };
 
     Ok(file)
