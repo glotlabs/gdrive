@@ -240,6 +240,7 @@ impl File {
             name: self.name.clone(),
             size: self.size,
             mime_type: self.mime_type.clone(),
+            source_mime_type: None,
             parents,
         }
     }
