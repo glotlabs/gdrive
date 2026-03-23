@@ -1,6 +1,5 @@
 use crate::common::drive_file;
-use crate::common::file_tree_drive;
-use crate::common::file_tree_drive::FileTreeDrive;
+use crate::common::drive_file::DocType;
 use crate::common::hub_helper;
 use crate::common::md5_writer::Md5Writer;
 use crate::files;
@@ -136,52 +135,100 @@ pub async fn download_directory(
     file: &google_drive3::api::File,
     config: &Config,
 ) -> Result<(), Error> {
-    let tree = FileTreeDrive::from_file(&hub, &file)
-        .await
-        .map_err(Error::CreateFileTree)?;
+    let root_path = config.canonical_destination_root()?;
+    let dir_name = file.name.clone().ok_or(Error::MissingFileName)?;
+    let dir_path = PathBuf::from(&dir_name);
 
-    let tree_info = tree.info();
+    let mut stats = DownloadStats::default();
+    download_directory_recursive(hub, file, &root_path, &dir_path, &mut stats).await?;
 
     println!(
-        "Found {} files in {} directories with a total size of {}",
-        tree_info.file_count,
-        tree_info.folder_count,
-        human_bytes(tree_info.total_file_size as f64)
+        "Downloaded {} files in {} directories with a total size of {}",
+        stats.file_count,
+        stats.folder_count,
+        human_bytes(stats.total_file_size as f64)
     );
 
-    let root_path = config.canonical_destination_root()?;
+    Ok(())
+}
 
-    for folder in &tree.folders() {
-        let folder_path = folder.relative_path();
-        let abs_folder_path = root_path.join(&folder_path);
+#[derive(Default)]
+struct DownloadStats {
+    file_count: u64,
+    folder_count: u64,
+    total_file_size: u64,
+}
 
-        println!("Creating directory {}", folder_path.display());
-        fs::create_dir_all(&abs_folder_path)
-            .map_err(|err| Error::CreateDirectory(abs_folder_path, err))?;
+#[async_recursion]
+async fn download_directory_recursive(
+    hub: &Hub,
+    dir_file: &google_drive3::api::File,
+    root_path: &PathBuf,
+    dir_path: &PathBuf,
+    stats: &mut DownloadStats,
+) -> Result<(), Error> {
+    let abs_dir_path = root_path.join(dir_path);
+    println!("Creating directory {}", dir_path.display());
+    fs::create_dir_all(&abs_dir_path)
+        .map_err(|err| Error::CreateDirectory(abs_dir_path.clone(), err))?;
+    stats.folder_count += 1;
 
-        for file in folder.files() {
-            let file_path = file.relative_path();
+    let file_id = dir_file.id.clone().ok_or(Error::MissingFileName)?;
+    let children = files::list::list_files(
+        hub,
+        &files::list::ListFilesConfig {
+            query: files::list::ListQuery::FilesInFolder { folder_id: file_id },
+            order_by: Default::default(),
+            max_files: usize::MAX,
+        },
+    )
+    .await
+    .map_err(Error::ListFiles)?;
+
+    for child in &children {
+        if drive_file::is_directory(child) {
+            let child_name = child.name.clone().ok_or(Error::MissingFileName)?;
+            let child_path = dir_path.join(&child_name);
+            download_directory_recursive(hub, child, root_path, &child_path, stats).await?;
+        } else if drive_file::is_binary(child) {
+            let file_name = child.name.clone().ok_or(Error::MissingFileName)?;
+            let file_path = dir_path.join(&file_name);
             let abs_file_path = root_path.join(&file_path);
 
-            if local_file_is_identical(&abs_file_path, &file) {
-                continue;
+            if abs_file_path.exists() {
+                let file_md5 = compute_md5_from_path(&abs_file_path).unwrap_or_default();
+                if child.md5_checksum.as_deref() == Some(&file_md5) {
+                    continue;
+                }
             }
 
-            let body = download_file(&hub, &file.drive_id)
+            let body = download_file(hub, child.id.as_deref().unwrap_or_default())
                 .await
                 .map_err(Error::DownloadFile)?;
 
             println!("Downloading file '{}'", file_path.display());
-            save_body_to_file(body, &abs_file_path, file.md5.clone()).await?;
+            save_body_to_file(body, &abs_file_path, child.md5_checksum.clone()).await?;
+            stats.file_count += 1;
+            stats.total_file_size += child.size.unwrap_or(0) as u64;
+        } else if let Some(doc_type) = DocType::from_mime_type(
+            child.mime_type.as_deref().unwrap_or_default(),
+        ) {
+            let file_name = child.name.clone().ok_or(Error::MissingFileName)?;
+            let export_ext = doc_type.default_office_export_type();
+            let export_name = format!("{}.{}", file_name, export_ext);
+            let file_path = dir_path.join(&export_name);
+            let abs_file_path = root_path.join(&file_path);
+
+            let mime_type = export_ext.get_export_mime().unwrap();
+            let body = files::export::export_file(hub, child.id.as_deref().unwrap_or_default(), &mime_type)
+                .await
+                .map_err(Error::ExportFile)?;
+
+            println!("Exporting {} '{}'", doc_type, file_path.display());
+            save_body_to_file(body, &abs_file_path, None).await?;
+            stats.file_count += 1;
         }
     }
-
-    println!(
-        "Downloaded {} files in {} directories with a total size of {}",
-        tree_info.file_count,
-        tree_info.folder_count,
-        human_bytes(tree_info.total_file_size as f64)
-    );
 
     Ok(())
 }
@@ -204,6 +251,8 @@ pub enum Error {
     Hub(hub_helper::Error),
     GetFile(google_drive3::Error),
     DownloadFile(google_drive3::Error),
+    ExportFile(google_drive3::Error),
+    ListFiles(files::list::Error),
     MissingFileName,
     FileExists(PathBuf),
     IsDirectory(String),
@@ -214,7 +263,6 @@ pub enum Error {
     RenameFile(io::Error),
     ReadChunk(hyper::Error),
     WriteChunk(io::Error),
-    CreateFileTree(file_tree_drive::Error),
     DestinationPathDoesNotExist(PathBuf),
     DestinationPathNotADirectory(PathBuf),
     CanonicalizeDestinationPath(PathBuf, io::Error),
@@ -231,6 +279,8 @@ impl Display for Error {
             Error::Hub(err) => write!(f, "{}", err),
             Error::GetFile(err) => write!(f, "Failed getting file: {}", err),
             Error::DownloadFile(err) => write!(f, "Failed to download file: {}", err),
+            Error::ExportFile(err) => write!(f, "Failed to export file: {}", err),
+            Error::ListFiles(err) => write!(f, "Failed to list files: {}", err),
             Error::MissingFileName => write!(f, "File does not have a name"),
             Error::FileExists(path) => write!(
                 f,
@@ -261,7 +311,6 @@ impl Display for Error {
             Error::RenameFile(err) => write!(f, "Failed to rename file: {}", err),
             Error::ReadChunk(err) => write!(f, "Failed read from stream: {}", err),
             Error::WriteChunk(err) => write!(f, "Failed write to file: {}", err),
-            Error::CreateFileTree(err) => write!(f, "Failed to create file tree: {}", err),
             Error::DestinationPathDoesNotExist(path) => {
                 write!(f, "Destination path '{}' does not exist", path.display())
             }
@@ -400,24 +449,6 @@ fn err_if_md5_mismatch(expected: Option<String>, actual: String) -> Result<(), E
             expected: expected.unwrap_or_default(),
             actual,
         })
-    }
-}
-
-fn local_file_is_identical(path: &PathBuf, file: &file_tree_drive::File) -> bool {
-    if path.exists() {
-        let file_md5 = compute_md5_from_path(path).unwrap_or_else(|err| {
-            eprintln!(
-                "Warning: Error while computing md5 of '{}': {}",
-                path.display(),
-                err
-            );
-
-            String::new()
-        });
-
-        file.md5.clone().map(|md5| md5 == file_md5).unwrap_or(false)
-    } else {
-        false
     }
 }
 

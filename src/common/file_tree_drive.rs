@@ -127,8 +127,14 @@ impl Folder {
                 let f = File::from_file(&file, &folder).await?;
                 let node = Node::FileNode(f);
                 children.push(node);
-            } else {
-                // Skip documents
+            } else if drive_file::DocType::from_mime_type(
+                file.mime_type.as_deref().unwrap_or_default(),
+            )
+            .is_some()
+            {
+                let f = File::from_google_doc(&file, &folder).await?;
+                let node = Node::FileNode(f);
+                children.push(node);
             }
         }
 
@@ -199,6 +205,7 @@ pub struct File {
     pub parent: Folder,
     pub drive_id: String,
     pub md5: Option<String>,
+    pub mime_type: Option<String>,
 }
 
 impl File {
@@ -217,13 +224,46 @@ impl File {
             parent: parent.clone(),
             drive_id: file_id,
             md5,
+            mime_type: file.mime_type.clone(),
         };
 
         Ok(file)
     }
 
+    pub async fn from_google_doc(
+        file: &google_drive3::api::File,
+        parent: &Folder,
+    ) -> Result<File, Error> {
+        let name = file.name.clone().ok_or(Error::MissingFileName)?;
+        let file_id = file.id.clone().ok_or(Error::MissingFileId)?;
+
+        let doc_type = drive_file::DocType::from_mime_type(
+            file.mime_type.as_deref().unwrap_or_default(),
+        );
+        let export_ext = doc_type
+            .map(|dt| dt.default_office_export_type().to_string())
+            .unwrap_or_default();
+        let export_name = format!("{}.{}", name, export_ext);
+
+        Ok(File {
+            name: export_name,
+            size: 0,
+            parent: parent.clone(),
+            drive_id: file_id,
+            md5: None,
+            mime_type: file.mime_type.clone(),
+        })
+    }
+
     pub fn relative_path(&self) -> PathBuf {
         self.parent.relative_path().join(&self.name)
+    }
+
+    pub fn is_google_doc(&self) -> bool {
+        self.mime_type
+            .as_deref()
+            .and_then(drive_file::DocType::from_mime_type)
+            .is_some()
     }
 }
 

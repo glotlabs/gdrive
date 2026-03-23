@@ -120,6 +120,14 @@ impl DocType {
         }
     }
 
+    pub fn default_office_export_type(&self) -> FileExtension {
+        match self {
+            DocType::Document => FileExtension::Docx,
+            DocType::Spreadsheet => FileExtension::Xlsx,
+            DocType::Presentation => FileExtension::Pptx,
+        }
+    }
+
     pub fn can_export_to(&self, extension: &FileExtension) -> bool {
         self.supported_export_types().contains(extension)
     }
