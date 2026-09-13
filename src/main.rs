@@ -122,11 +122,11 @@ enum FileCommand {
     /// List files
     List {
         /// Max files to list
-        #[arg(long, default_value_t = 30)]
+        #[arg(short, long, default_value_t = 30)]
         max: usize,
 
         /// Query. See https://developers.google.com/drive/search-parameters
-        #[arg(long, default_value_t = ListQuery::default())]
+        #[arg(short, long, default_value_t = ListQuery::default())]
         query: ListQuery,
 
         /// Order by. See https://developers.google.com/drive/api/v3/reference/files/list
@@ -134,7 +134,7 @@ enum FileCommand {
         order_by: ListSortOrder,
 
         /// List files in a specific folder
-        #[arg(long, value_name = "DIRECTORY_ID")]
+        #[arg(short, long, value_name = "DIRECTORY_ID")]
         parent: Option<String>,
 
         /// List files on a shared drive
@@ -168,7 +168,7 @@ enum FileCommand {
         follow_shortcuts: bool,
 
         /// Download directories
-        #[arg(long)]
+        #[arg(short, long)]
         recursive: bool,
 
         /// Path where the file/directory should be downloaded to
@@ -190,15 +190,15 @@ enum FileCommand {
         mime: Option<Mime>,
 
         /// Upload to an existing directory
-        #[arg(long, value_name = "DIRECTORY_ID")]
+        #[arg(short, long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
         /// Upload directories. Note that this will always create a new directory on drive and will not update existing directories with the same name
-        #[arg(long)]
+        #[arg(short, long)]
         recursive: bool,
 
         /// Set chunk size in MB, must be a power of two.
-        #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
+        #[arg(short = 's', long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
         chunk_size: ChunkSize,
 
         /// Print errors occuring during chunk upload
@@ -227,7 +227,7 @@ enum FileCommand {
         mime: Option<Mime>,
 
         /// Set chunk size in MB, must be a power of two.
-        #[arg(long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
+        #[arg(short = 's', long, value_name = "1|2|4|8|16|32|64|128|256|512|1024|4096|8192", default_value_t = ChunkSize::default())]
         chunk_size: ChunkSize,
 
         /// Print errors occuring during chunk upload
@@ -245,7 +245,7 @@ enum FileCommand {
         file_id: String,
 
         /// Delete directory and all it's content
-        #[arg(long)]
+        #[arg(short, long)]
         recursive: bool,
     },
 
@@ -255,7 +255,7 @@ enum FileCommand {
         name: String,
 
         /// Create in an existing directory
-        #[arg(long, value_name = "DIRECTORY_ID")]
+        #[arg(short, long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
         /// Print only id of folder
@@ -297,7 +297,7 @@ enum FileCommand {
         file_path: PathBuf,
 
         /// Upload to an existing directory
-        #[arg(long, value_name = "DIRECTORY_ID")]
+        #[arg(short, long, value_name = "DIRECTORY_ID")]
         parent: Option<Vec<String>>,
 
         /// Print only id of file
